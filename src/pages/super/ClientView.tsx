@@ -8,6 +8,7 @@ import { displayPhone, fmtDate, money } from '../../lib/utils'
 import { DashboardContent } from '../tenant/Dashboard'
 import { ClientFormModal, RenewModal, SetPasswordModal } from './ClientModals'
 import { StatusBadge } from './Subscriptions'
+import { t } from '../../lib/i18n'
 
 export default function ClientView({ id }: { id: string }) {
   const db = useDb()
@@ -16,14 +17,14 @@ export default function ClientView({ id }: { id: string }) {
   const [edit, setEdit] = useState(false)
   const [pw, setPw] = useState(false)
   const [renew, setRenew] = useState(false)
-  if (!c) return <Empty title="Mijoz topilmadi" action={<Button onClick={() => nav('/super/clients')}>Mijozlar ro'yxati</Button>} />
-  const t = db.tenants[c.id]
+  if (!c) return <Empty title={t("Mijoz topilmadi")} action={<Button onClick={() => nav('/super/clients')}>{t("Mijozlar ro'yxati")}</Button>} />
+  const tn = db.tenants[c.id]
   const s = currentSub(c)
 
   return (
     <div>
       <button onClick={() => nav('/super/clients')} className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800 cursor-pointer">
-        <ArrowLeft size={16} /> Mijozlar
+        <ArrowLeft size={16} /> {t("Mijozlar")}
       </button>
 
       <Card className="overflow-hidden">
@@ -43,23 +44,23 @@ export default function ClientView({ id }: { id: string }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" icon={<KeyRound size={16} />} onClick={() => setPw(true)}>
-              Parol o'rnatish
+              {t("Parol o'rnatish")}
             </Button>
             <Button variant="secondary" icon={<Pencil size={16} />} onClick={() => setEdit(true)}>
-              Tahrirlash
+              {t("Tahrirlash")}
             </Button>
             <Button icon={<RefreshCw size={16} />} onClick={() => setRenew(true)}>
-              Uzaytirish
+              {t("Uzaytirish")}
             </Button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-px border-t border-slate-100 bg-slate-100 md:grid-cols-5">
           {[
-            ["Mas'ul shaxs", c.contactName],
-            ['Telefon', displayPhone(c.phone)],
-            ['Tarif', s ? `${s.tariffName} · ${money(s.price)}` : '—'],
-            ['Obuna tugashi', fmtDate(subEnd(c))],
-            ['Platformada', `${(lifetimeDays(c) / 30).toFixed(1)} oy · ${money(revenue(c))}`],
+            [t("Mas'ul shaxs"), c.contactName],
+            [t("Telefon"), displayPhone(c.phone)],
+            [t("Tarif"), s ? `${s.tariffName} · ${money(s.price)}` : '—'],
+            [t("Obuna tugashi"), fmtDate(subEnd(c))],
+            [t("Platformada"), t("{0} oy · {1}", { 0: (lifetimeDays(c) / 30).toFixed(1), 1: money(revenue(c)) })],
           ].map(([k, v]) => (
             <div key={k} className="bg-white px-6 py-4">
               <p className="text-xs font-medium text-slate-400">{k}</p>
@@ -71,25 +72,25 @@ export default function ClientView({ id }: { id: string }) {
 
       <div className="mb-4 mt-8 flex items-end justify-between">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">Mijoz dashboardi</h2>
-          <p className="text-sm text-slate-500">Mijozning HR ko'rsatkichlari (faqat ko'rish rejimi)</p>
+          <h2 className="text-xl font-extrabold tracking-tight text-slate-900">{t("Mijoz dashboardi")}</h2>
+          <p className="text-sm text-slate-500">{t("Mijozning HR ko'rsatkichlari (faqat ko'rish rejimi)")}</p>
         </div>
       </div>
-      {t ? (
+      {tn ? (
         <TenantProvider clientId={c.id} readOnly>
           <div style={{ ['--brand' as string]: c.primaryColor }}>
             <DashboardContent embedded />
           </div>
         </TenantProvider>
       ) : (
-        <Empty title="Ma'lumot yo'q" />
+        <Empty title={t("Ma'lumot yo'q")} />
       )}
 
       <Card className="mt-6">
         <div className="border-b border-slate-100 px-6 py-4">
-          <h3 className="font-bold text-slate-900">To'lovlar tarixi</h3>
+          <h3 className="font-bold text-slate-900">{t("To'lovlar tarixi")}</h3>
         </div>
-        <Table head={['Tarif', 'Summa', 'Boshlanish', 'Tugash']}>
+        <Table head={[t("Tarif"), t("Summa"), t("Boshlanish"), t("Tugash")]}>
           {[...c.subscriptions].reverse().map((x) => (
             <tr key={x.id}>
               <td className="px-5 py-3 font-semibold">{x.tariffName}</td>

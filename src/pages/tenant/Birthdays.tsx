@@ -2,6 +2,7 @@ import { Cake, CalendarDays, Clock, Gift, PartyPopper, User } from 'lucide-react
 import { Button, Card, Empty, PageHeader } from '../../components/ui'
 import { useTenant } from '../../lib/tenant'
 import { DAY } from '../../lib/utils'
+import { t } from '../../lib/i18n'
 
 export const MONTHS_FULL = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr']
 
@@ -31,17 +32,17 @@ export default function Birthdays() {
   const noDate = tenant.employees.filter((e) => !e.birthDate && inBranch(e.branchId)).length
 
   const congrats = (id: string) =>
-    update((t) => {
-      const x = t.employees.find((y) => y.id === id)!
+    update((tn) => {
+      const x = tn.employees.find((y) => y.id === id)!
       x.congratulatedYear = x.congratulatedYear === year ? undefined : year
     })
 
   return (
     <div>
-      <PageHeader title="Tug'ilgan kunlar" subtitle="Xodimlarning eng yaqin tug'ilgan kunlari" />
+      <PageHeader title={t("Tug'ilgan kunlar")} subtitle={t("Xodimlarning eng yaqin tug'ilgan kunlari")} />
       {list.length === 0 ? (
         <Card className="rounded-3xl">
-          <Empty icon={<Cake size={26} />} title="Tug'ilgan kunlar yo'q" text="Xodimlar bo'limida tug'ilgan sanalarni kiriting" />
+          <Empty icon={<Cake size={26} />} title={t("Tug'ilgan kunlar yo'q")} text={t("Xodimlar bo'limida tug'ilgan sanalarni kiriting")} />
         </Card>
       ) : (
         <div className="space-y-4">
@@ -62,29 +63,29 @@ export default function Birthdays() {
                   <p className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">{e.name}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-3 text-sm">
                     <span className="font-bold uppercase tracking-widest text-slate-400">
-                      {d} {MONTHS_FULL[m - 1]}
+                      {d} {t(MONTHS_FULL[m - 1])}
                     </span>
                     <span className="h-1 w-1 rounded-full bg-slate-300" />
                     <span className="flex items-center gap-1.5 font-semibold text-slate-700">
-                      <CalendarDays size={15} className="text-brand" /> {y}, {d} {MONTHS_FULL[m - 1]}
+                      <CalendarDays size={15} className="text-brand" /> {y}, {d} {t(MONTHS_FULL[m - 1])}
                     </span>
                     <span className="h-1 w-1 rounded-full bg-slate-300" />
-                    <span className="text-slate-500">{age} yoshga to'ladi</span>
+                    <span className="text-slate-500">{t("{0} yoshga to'ladi", { 0: age })}</span>
                   </div>
                 </div>
                 {today ? (
                   done ? (
                     <Button variant="soft" size="lg" icon={<PartyPopper size={17} />} onClick={() => congrats(e.id)}>
-                      Tabriklandi
+                      {t("Tabriklandi")}
                     </Button>
                   ) : (
                     <Button size="lg" className="!bg-pink-500 shadow-lg !shadow-pink-500/25" icon={<Gift size={17} />} onClick={() => congrats(e.id)}>
-                      Tabriklash
+                      {t("Tabriklash")}
                     </Button>
                   )
                 ) : (
                   <span className="flex h-12 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-5 text-sm font-semibold text-slate-400">
-                    <Clock size={16} /> Kutilmoqda · {days} kun
+                    <Clock size={16} /> {t("Kutilmoqda · {0} kun", { 0: days })}
                   </span>
                 )}
               </Card>
@@ -92,7 +93,7 @@ export default function Birthdays() {
           })}
         </div>
       )}
-      {noDate > 0 && <p className="mt-6 text-center text-sm text-slate-400">{noDate} ta xodimning tug'ilgan sanasi kiritilmagan</p>}
+      {noDate > 0 && <p className="mt-6 text-center text-sm text-slate-400">{t("{0} ta xodimning tug'ilgan sanasi kiritilmagan", { 0: noDate })}</p>}
     </div>
   )
 }

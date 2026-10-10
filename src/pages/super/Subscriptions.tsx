@@ -2,19 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ExternalLink, KeyRound, Lock, Pencil, RefreshCw, Trash2, Unlock } from 'lucide-react'
 import { Avatar, Badge, Button, Card, Empty, IconButton, PageHeader, SearchInput, Table, Tabs, toast } from '../../components/ui'
-import { currentSub, daysLeft, subEnd, subStatus, updateDb, useDb, type SubStatus } from '../../lib/db'
+import { currentSub, daysLeft, filialsOf, subEnd, subStatus, updateDb, useDb, type SubStatus } from '../../lib/db'
 import type { Client } from '../../lib/types'
 import { displayPhone, fmtDate, money } from '../../lib/utils'
 import { ClientFormModal, RenewModal, SetPasswordModal } from './ClientModals'
+import { t } from '../../lib/i18n'
 
 export function StatusBadge({ c }: { c: Client }) {
   const s = subStatus(c)
   const d = daysLeft(c)
-  if (c.blocked) return <Badge tone="slate">Bloklangan</Badge>
-  if (s === 'active') return <Badge tone="green">Aktiv · {d} kun</Badge>
-  if (s === 'expiring') return <Badge tone="orange">{d === 0 ? 'Bugun tugaydi' : `${d} kun qoldi`}</Badge>
-  if (s === 'expired') return <Badge tone="red">Tugagan</Badge>
-  return <Badge>Obuna yo'q</Badge>
+  if (c.blocked) return <Badge tone="slate">{t("Bloklangan")}</Badge>
+  if (s === 'active') return <Badge tone="green">{t("Aktiv · {0} kun", { 0: d })}</Badge>
+  if (s === 'expiring') return <Badge tone="orange">{d === 0 ? t("Bugun tugaydi") : t("{0} kun qoldi", { 0: d })}</Badge>
+  if (s === 'expired') return <Badge tone="red">{t("Tugagan")}</Badge>
+  return <Badge>{t("Obuna yo'q")}</Badge>
 }
 
 export default function Subscriptions() {
@@ -39,17 +40,17 @@ export default function Subscriptions() {
   const list = db.clients.filter((c) => {
     const s = subStatus(c)
     if (filter !== 'all' && s !== filter) return false
-    const t = q.toLowerCase()
-    return !t || [c.companyName, c.contactName, c.phone, c.subdomain].some((x) => x.toLowerCase().includes(t))
+    const tn = q.toLowerCase()
+    return !tn || [c.companyName, c.contactName, c.phone, c.subdomain].some((x) => x.toLowerCase().includes(tn))
   })
 
   const remove = (c: Client) => {
-    if (!confirm(`"${c.companyName}" mijozini va uning barcha ma'lumotlarini o'chirasizmi? Bu amalni qaytarib bo'lmaydi.`)) return
+    if (!confirm(t("\"{0}\" mijozini va uning barcha ma'lumotlarini o'chirasizmi? Bu amalni qaytarib bo'lmaydi.", { 0: c.companyName }))) return
     updateDb((d) => {
       d.clients = d.clients.filter((x) => x.id !== c.id)
       delete d.tenants[c.id]
     })
-    toast("Mijoz o'chirildi")
+    toast(t("Mijoz o'chirildi"))
   }
 
   const toggleBlock = (c: Client) =>
@@ -62,7 +63,7 @@ export default function Subscriptions() {
 
   return (
     <div>
-      <PageHeader title="Obunalar" subtitle="Mijozlar, ularning tariflari va kirish ma'lumotlari" actions={<Button onClick={() => setAdding(true)}>+ Mijoz qo'shish</Button>} />
+      <PageHeader title={t("Obunalar")} subtitle={t("Mijozlar, ularning tariflari va kirish ma'lumotlari")} actions={<Button onClick={() => setAdding(true)}>{t("+ Mijoz qo'shish")}</Button>} />
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-slate-100 p-4 md:flex-row md:items-center md:justify-between">
@@ -71,20 +72,20 @@ export default function Subscriptions() {
               value={filter}
               onChange={setFilter}
               items={[
-                { value: 'all', label: `Barchasi (${db.clients.length})` },
-                { value: 'active', label: `Aktiv (${count('active')})` },
-                { value: 'expiring', label: `Tugayapti (${count('expiring')})` },
-                { value: 'expired', label: `Tugagan (${count('expired')})` },
+                { value: 'all', label: t("Barchasi ({0})", { 0: db.clients.length }) },
+                { value: 'active', label: t("Aktiv ({0})", { 0: count('active') }) },
+                { value: 'expiring', label: t("Tugayapti ({0})", { 0: count('expiring') }) },
+                { value: 'expired', label: t("Tugagan ({0})", { 0: count('expired') }) },
               ]}
             />
           </div>
-          <SearchInput value={q} onChange={setQ} placeholder="Kompaniya, telefon, subdomain..." className="md:w-72" />
+          <SearchInput value={q} onChange={setQ} placeholder={t("Kompaniya, telefon, subdomain...")} className="md:w-72" />
         </div>
 
         {list.length === 0 ? (
-          <Empty title="Mijozlar topilmadi" text="Yangi mijoz qo'shish uchun yuqoridagi tugmani bosing" action={<Button onClick={() => setAdding(true)}>+ Mijoz qo'shish</Button>} />
+          <Empty title={t("Mijozlar topilmadi")} text={t("Yangi mijoz qo'shish uchun yuqoridagi tugmani bosing")} action={<Button onClick={() => setAdding(true)}>{t("+ Mijoz qo'shish")}</Button>} />
         ) : (
-          <Table head={['Kompaniya', "Mas'ul shaxs", 'Sub-domain sayti', 'Tarif', 'Muddati', 'Holati', '']}>
+          <Table head={[t("Kompaniya"), t("Mas'ul shaxs"), t("Sub-domain sayti"), t("Tarif"), t("Muddati"), t("Holati"), '']}>
             {list.map((c) => {
               const s = currentSub(c)
               return (
@@ -94,7 +95,10 @@ export default function Subscriptions() {
                       <Avatar name={c.companyName} color={c.primaryColor} size={38} />
                       <div>
                         <p className="font-semibold text-slate-800 hover:text-brand">{c.companyName}</p>
-                        <p className="text-xs text-slate-400">Qo'shilgan: {fmtDate(c.createdAt)}</p>
+                        <p className="text-xs text-slate-400">
+                          {t("Qo'shilgan: {0}", { 0: fmtDate(c.createdAt) })}
+                          {filialsOf(c, db.clients).length > 1 && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 font-semibold text-blue-600">{t("{0} filial", { 0: filialsOf(c, db.clients).length })}</span>}
+                        </p>
                       </div>
                     </button>
                   </td>
@@ -103,7 +107,7 @@ export default function Subscriptions() {
                     <p className="text-xs text-slate-400">{displayPhone(c.phone)}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <Link to={`/c/${c.subdomain}`} target="_blank" title="Mijozning kirish sahifasi" className="inline-flex items-center gap-1 font-medium text-brand hover:underline">
+                    <Link to={`/c/${c.subdomain}`} target="_blank" title={t("Mijozning kirish sahifasi")} className="inline-flex items-center gap-1 font-medium text-brand hover:underline">
                       {c.subdomain}.hrpulse.uz <ExternalLink size={13} />
                     </Link>
                   </td>
@@ -118,18 +122,18 @@ export default function Subscriptions() {
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
                       <Button size="sm" variant="soft" icon={<KeyRound size={14} />} onClick={() => setPwFor(c)}>
-                        Parol o'rnatish
+                        {t("Parol o'rnatish")}
                       </Button>
-                      <IconButton title="Obunani uzaytirish" onClick={() => setRenewFor(c)}>
+                      <IconButton title={t("Obunani uzaytirish")} onClick={() => setRenewFor(c)}>
                         <RefreshCw size={16} />
                       </IconButton>
-                      <IconButton title="Tahrirlash" onClick={() => setEditing(c)}>
+                      <IconButton title={t("Tahrirlash")} onClick={() => setEditing(c)}>
                         <Pencil size={16} />
                       </IconButton>
-                      <IconButton title={c.blocked ? 'Blokdan chiqarish' : 'Bloklash'} onClick={() => toggleBlock(c)}>
+                      <IconButton title={c.blocked ? t("Blokdan chiqarish") : t("Bloklash")} onClick={() => toggleBlock(c)}>
                         {c.blocked ? <Unlock size={16} /> : <Lock size={16} />}
                       </IconButton>
-                      <IconButton title="O'chirish" tone="danger" onClick={() => remove(c)}>
+                      <IconButton title={t("O'chirish")} tone="danger" onClick={() => remove(c)}>
                         <Trash2 size={16} />
                       </IconButton>
                     </div>

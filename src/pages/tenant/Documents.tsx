@@ -4,6 +4,7 @@ import { Button, Card, Empty, IconButton, Input, Modal, PageHeader, toast } from
 import { useTenant } from '../../lib/tenant'
 import type { DocItem } from '../../lib/types'
 import { cn, fileToDataUrl, fmtDate, uid } from '../../lib/utils'
+import { t } from '../../lib/i18n'
 
 const MAX_FILE = 1.5 * 1024 * 1024
 type Kind = DocItem['kind']
@@ -23,11 +24,11 @@ function DocForm({ onClose }: { onClose: () => void }) {
   const ref = useRef<HTMLInputElement>(null)
 
   const save = () => {
-    if (!name.trim()) return setErr('Hujjat nomini kiriting')
-    if (kind === 'link' && !/^https?:\/\//.test(url.trim())) return setErr('Link https:// bilan boshlanishi kerak')
-    if (kind !== 'link' && !file) return setErr(kind === 'image' ? 'Rasm tanlang' : 'Fayl tanlang')
-    update((t) => t.documents.unshift({ id: uid(), name: name.trim(), kind, url: kind === 'link' ? url.trim() : file!.data, fileName: file?.name, createdAt: new Date().toISOString() }))
-    toast("Hujjat qo'shildi")
+    if (!name.trim()) return setErr(t('Hujjat nomini kiriting'))
+    if (kind === 'link' && !/^https?:\/\//.test(url.trim())) return setErr(t('Link https:// bilan boshlanishi kerak'))
+    if (kind !== 'link' && !file) return setErr(kind === 'image' ? t("Rasm tanlang") : t("Fayl tanlang"))
+    update((tn) => tn.documents.unshift({ id: uid(), name: name.trim(), kind, url: kind === 'link' ? url.trim() : file!.data, fileName: file?.name, createdAt: new Date().toISOString() }))
+    toast(t("Hujjat qo'shildi"))
     onClose()
   }
 
@@ -36,10 +37,10 @@ function DocForm({ onClose }: { onClose: () => void }) {
       open
       onClose={onClose}
       size="sm"
-      title="Yangi hujjat"
+      title={t("Yangi hujjat")}
       footer={
         <Button size="lg" className="w-full !bg-slate-900" onClick={save}>
-          Saqlash
+          {t("Saqlash")}
         </Button>
       }
     >
@@ -52,19 +53,19 @@ function DocForm({ onClose }: { onClose: () => void }) {
               onClick={() => (setKind(k), setFile(null), setErr(''))}
               className={cn('rounded-xl py-2.5 text-xs font-extrabold uppercase tracking-widest transition cursor-pointer', kind === k ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-slate-600')}
             >
-              {KIND_LABEL[k]}
+              {t(KIND_LABEL[k])}
             </button>
           ))}
         </div>
-        <Input label="Nomi" value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Mehnat shartnomasi" autoFocus />
+        <Input label={t("Nomi")} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Masalan: Mehnat shartnomasi")} autoFocus />
         {kind === 'link' ? (
-          <Input label="Link URL" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
+          <Input label={t("Link URL")} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
         ) : (
           <div>
-            <span className="mb-1.5 block text-xs font-semibold text-slate-500">Tanlash</span>
+            <span className="mb-1.5 block text-xs font-semibold text-slate-500">{t("Tanlash")}</span>
             <button type="button" onClick={() => ref.current?.click()} className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 hover:border-brand hover:text-brand cursor-pointer">
               {kind === 'image' && file ? <img src={file.data} alt="" className="max-h-32 rounded-xl" /> : <Upload size={22} />}
-              {file ? <b className="text-slate-700">{file.name}</b> : `${kind === 'image' ? 'Rasm' : 'Fayl'} tanlash uchun bosing (1.5 MB gacha)`}
+              {file ? <b className="text-slate-700">{file.name}</b> : kind === 'image' ? t('Rasm tanlash uchun bosing (1.5 MB gacha)') : t('Fayl tanlash uchun bosing (1.5 MB gacha)')}
             </button>
             <input
               ref={ref}
@@ -75,7 +76,7 @@ function DocForm({ onClose }: { onClose: () => void }) {
                 const f = e.target.files?.[0]
                 e.target.value = ''
                 if (!f) return
-                if (f.size > MAX_FILE) return setErr('Fayl hajmi 1.5 MB dan oshmasligi kerak')
+                if (f.size > MAX_FILE) return setErr(t('Fayl hajmi 1.5 MB dan oshmasligi kerak'))
                 setErr('')
                 setFile({ name: f.name, data: await fileToDataUrl(f, 1600) })
                 if (!name) setName(f.name.replace(/\.[^.]+$/, ''))
@@ -99,21 +100,21 @@ export default function Documents() {
   return (
     <div>
       <PageHeader
-        title="Hujjatlar"
-        subtitle="HR uchun zaruriy hujjatlar va fayllar maskani"
+        title={t("Hujjatlar")}
+        subtitle={t("HR uchun zaruriy hujjatlar va fayllar maskani")}
         actions={
           <Button size="lg" className="!bg-slate-900 shadow-lg !shadow-slate-900/20" icon={<FolderPlus size={18} />} onClick={() => setForm(true)}>
-            Hujjat qo'shish
+            {t("Hujjat qo'shish")}
           </Button>
         }
       />
       <div className="relative mb-6 max-w-lg">
         <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm shadow-sm outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" placeholder="Fayllardan qidirish..." value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="h-12 w-full rounded-2xl border border-slate-200 bg-white pl-11 pr-4 text-sm shadow-sm outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" placeholder={t("Fayllardan qidirish...")} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {list.length === 0 ? (
         <Card className="rounded-3xl">
-          <Empty icon={<FileText size={26} />} title={q ? 'Hech narsa topilmadi' : "Hujjatlar yo'q"} action={!q && <Button onClick={() => setForm(true)}>Hujjat qo'shish</Button>} />
+          <Empty icon={<FileText size={26} />} title={q ? t("Hech narsa topilmadi") : t("Hujjatlar yo'q")} action={!q && <Button onClick={() => setForm(true)}>{t("Hujjat qo'shish")}</Button>} />
         </Card>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -125,7 +126,7 @@ export default function Documents() {
                   tone="danger"
                   className="opacity-0 transition group-hover:opacity-100"
                   onClick={() => {
-                    if (confirm(`"${d.name}" hujjatini o'chirasizmi?`)) update((t) => (t.documents = t.documents.filter((x) => x.id !== d.id)))
+                    if (confirm(t("\"{0}\" hujjatini o'chirasizmi?", { 0: d.name }))) update((tn) => (tn.documents = tn.documents.filter((x) => x.id !== d.id)))
                   }}
                 >
                   <Trash2 size={15} />
@@ -135,16 +136,16 @@ export default function Documents() {
                 {d.name}
               </p>
               <p className="mt-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                {d.kind === 'link' ? 'Link' : ext(d.fileName) || KIND_LABEL[d.kind]} • {KIND_LABEL[d.kind]}
+                {d.kind === 'link' ? t("Link") : ext(d.fileName) || t(KIND_LABEL[d.kind])} • {t(KIND_LABEL[d.kind])}
               </p>
               <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
                 <span className="text-xs font-semibold text-slate-300">{fmtDate(d.createdAt)}</span>
                 {d.kind === 'link' ? (
-                  <a href={d.url} target="_blank" rel="noreferrer" title="Ochish" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100">
+                  <a href={d.url} target="_blank" rel="noreferrer" title={t("Ochish")} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100">
                     <ArrowUpRight size={18} />
                   </a>
                 ) : (
-                  <a href={d.url} download={d.fileName} title="Yuklab olish" className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100">
+                  <a href={d.url} download={d.fileName} title={t("Yuklab olish")} className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100">
                     <Download size={18} />
                   </a>
                 )}

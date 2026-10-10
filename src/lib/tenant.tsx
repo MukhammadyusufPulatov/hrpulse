@@ -1,12 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { updateDb, useDb, useSession } from './db'
 import type { Client, ID, Tenant } from './types'
 import { uid } from './utils'
+import { t } from '../lib/i18n'
 
 interface Ctx {
   client: Client
   tenant: Tenant
-  update: (fn: (t: Tenant) => void) => void
+  update: (fn: (tn: Tenant) => void) => void
   branch: ID | 'all'
   setBranch: (b: ID | 'all') => void
   readOnly: boolean
@@ -25,18 +26,14 @@ export function TenantProvider({ clientId, readOnly = false, children }: { clien
   const session = useSession()
   const client = db.clients.find((c) => c.id === clientId)
   const tenant = db.tenants[clientId]
-  const storageKey = 'hrpulse_branch_' + clientId
-  const [branch, setBranchState] = useState<ID | 'all'>(() => localStorage.getItem(storageKey) || 'all')
-
-  useEffect(() => {
-    if (branch !== 'all' && tenant && !tenant.branches.some((b) => b.id === branch)) setBranchState('all')
-  }, [tenant, branch])
+  // Ichki filiallar o'rniga har bir mijoz profili alohida filial (bir xil telefon raqamli profillar)
+  const branch = 'all' as const
 
   const value = useMemo<Ctx | null>(() => {
     if (!client || !tenant) return null
     const me = session?.role === 'hr' ? session.managerId : 'admin'
     const meName = me === 'admin' ? client.contactName : tenant.managers.find((m) => m.id === me)?.name ?? 'HR'
-    const update = (fn: (t: Tenant) => void) => {
+    const update = (fn: (tn: Tenant) => void) => {
       if (readOnly) return
       updateDb((d) => fn(d.tenants[clientId]))
     }
@@ -45,20 +42,17 @@ export function TenantProvider({ clientId, readOnly = false, children }: { clien
       tenant,
       update,
       branch,
-      setBranch: (b) => {
-        localStorage.setItem(storageKey, b)
-        setBranchState(b)
-      },
+      setBranch: () => {},
       readOnly,
       me,
       meName,
       isAdmin: me === 'admin',
-      notify: (to, text) => update((t) => t.notices.unshift({ id: uid(), to, text, at: new Date().toISOString(), read: false })),
-      inBranch: (b) => branch === 'all' || b === branch,
+      notify: (to, text) => update((tn) => tn.notices.unshift({ id: uid(), to, text, at: new Date().toISOString(), read: false })),
+      inBranch: () => true,
     }
-  }, [client, tenant, branch, readOnly, session, clientId, storageKey])
+  }, [client, tenant, readOnly, session, clientId])
 
-  if (!value) return <div className="p-10 text-center text-slate-500">Mijoz topilmadi</div>
+  if (!value) return <div className="p-10 text-center text-slate-500">{t("Mijoz topilmadi")}</div>
   return <TenantCtx.Provider value={value}>{children}</TenantCtx.Provider>
 }
 

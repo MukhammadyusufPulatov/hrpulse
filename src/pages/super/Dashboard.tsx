@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 import { Avatar, Badge, Button, Card, Empty, PageHeader, StatCard } from '../../components/ui'
 import { EXPIRING_DAYS, currentSub, daysLeft, lifetimeDays, revenue, subEnd, subStatus, useDb } from '../../lib/db'
 import { MONTHS, fmtDate, money, shortMoney } from '../../lib/utils'
+import { t } from '../../lib/i18n'
 
 const PIE = ['#111111', '#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
 
@@ -24,7 +25,7 @@ export default function SuperDashboard() {
   const now = new Date()
   const months = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
-    return { key: `${d.getFullYear()}-${d.getMonth()}`, name: MONTHS[d.getMonth()], value: 0 }
+    return { key: `${d.getFullYear()}-${d.getMonth()}`, name: t(MONTHS[d.getMonth()]), value: 0 }
   })
   clients.forEach((c) =>
     c.subscriptions.forEach((s) => {
@@ -47,19 +48,19 @@ export default function SuperDashboard() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle="Platforma bo'yicha umumiy ko'rsatkichlar" actions={<Button onClick={() => nav('/super/subscriptions?add=1')}>+ Mijoz qo'shish</Button>} />
+      <PageHeader title={t("Dashboard")} subtitle={t("Platforma bo'yicha umumiy ko'rsatkichlar")} actions={<Button onClick={() => nav('/super/subscriptions?add=1')}>{t("+ Mijoz qo'shish")}</Button>} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Aktiv obunalar" value={active.length} sub={`Jami mijozlar: ${clients.length}`} icon={<CheckCircle2 size={22} />} tone="green" onClick={() => nav('/super/subscriptions')} />
-        <StatCard title="Yaqinda tugaydi" value={expiring.length} sub={`${EXPIRING_DAYS} kun ichida · tugagan: ${expired.length}`} icon={<AlertTriangle size={22} />} tone="orange" onClick={() => nav('/super/subscriptions?filter=expiring')} />
-        <StatCard title="LTV (o'rtacha muddat)" value={`${avgMonths.toFixed(1)} oy`} sub="Mijozning men bilan ishlagan o'rtacha vaqti" icon={<Clock size={22} />} tone="brand" />
-        <StatCard title="LTV (o'rtacha daromad)" value={shortMoney(avgRevenue)} sub={`Jami tushum: ${money(totalRevenue)}`} icon={<Wallet size={22} />} tone="purple" />
+        <StatCard title={t("Aktiv obunalar")} value={active.length} sub={t("Jami mijozlar: {0}", { 0: clients.length })} icon={<CheckCircle2 size={22} />} tone="green" onClick={() => nav('/super/subscriptions')} />
+        <StatCard title={t("Yaqinda tugaydi")} value={expiring.length} sub={t("{0} kun ichida · tugagan: {1}", { 0: EXPIRING_DAYS, 1: expired.length })} icon={<AlertTriangle size={22} />} tone="orange" onClick={() => nav('/super/subscriptions?filter=expiring')} />
+        <StatCard title={t("LTV (o'rtacha muddat)")} value={t("{0} oy", { 0: avgMonths.toFixed(1) })} sub={t("Mijozning men bilan ishlagan o'rtacha vaqti")} icon={<Clock size={22} />} tone="brand" />
+        <StatCard title={t("LTV (o'rtacha daromad)")} value={shortMoney(avgRevenue)} sub={t("Jami tushum: {0}", { 0: money(totalRevenue) })} icon={<Wallet size={22} />} tone="purple" />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <Card className="p-6 xl:col-span-2">
-          <h3 className="font-bold text-slate-900">Oylik tushum</h3>
-          <p className="text-sm text-slate-400">So'nggi 6 oyda sotilgan obunalar</p>
+          <h3 className="font-bold text-slate-900">{t("Oylik tushum")}</h3>
+          <p className="text-sm text-slate-400">{t("So'nggi 6 oyda sotilgan obunalar")}</p>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={months}>
@@ -67,14 +68,14 @@ export default function SuperDashboard() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={shortMoney} width={60} />
                 <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(v: number) => money(v)} contentStyle={{ borderRadius: 14, border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,.1)' }} />
-                <Bar dataKey="value" name="Tushum" fill="var(--brand)" radius={[10, 10, 0, 0]} barSize={36} />
+                <Bar dataKey="value" name={t("Tushum")} fill="var(--brand)" radius={[10, 10, 0, 0]} barSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
         <Card className="p-6">
-          <h3 className="font-bold text-slate-900">Tariflar bo'yicha</h3>
-          <p className="text-sm text-slate-400">Aktiv obunalar taqsimoti</p>
+          <h3 className="font-bold text-slate-900">{t("Tariflar bo'yicha")}</h3>
+          <p className="text-sm text-slate-400">{t("Aktiv obunalar taqsimoti")}</p>
           {byTariff.length ? (
             <>
               <div className="h-44">
@@ -90,19 +91,19 @@ export default function SuperDashboard() {
                 </ResponsiveContainer>
               </div>
               <div className="space-y-2">
-                {byTariff.map((t, i) => (
-                  <div key={t.name} className="flex items-center justify-between text-sm">
+                {byTariff.map((tn, i) => (
+                  <div key={tn.name} className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-2 text-slate-600">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ background: PIE[i % PIE.length] }} />
-                      {t.name}
+                      {tn.name}
                     </span>
-                    <span className="font-bold">{t.value}</span>
+                    <span className="font-bold">{tn.value}</span>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <Empty title="Aktiv obuna yo'q" />
+            <Empty title={t("Aktiv obuna yo'q")} />
           )}
         </Card>
       </div>
@@ -110,12 +111,12 @@ export default function SuperDashboard() {
       <Card className="mt-6">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div>
-            <h3 className="font-bold text-slate-900">Obunasi yaqinda tugaydiganlar</h3>
-            <p className="text-sm text-slate-400">Mijozlar bilan bog'lanib, obunani uzaytiring</p>
+            <h3 className="font-bold text-slate-900">{t("Obunasi yaqinda tugaydiganlar")}</h3>
+            <p className="text-sm text-slate-400">{t("Mijozlar bilan bog'lanib, obunani uzaytiring")}</p>
           </div>
         </div>
         {expiring.length === 0 && expired.length === 0 ? (
-          <Empty icon={<Building2 size={26} />} title="Hammasi joyida" text={`${EXPIRING_DAYS} kun ichida obunasi tugaydigan mijoz yo'q`} />
+          <Empty icon={<Building2 size={26} />} title={t("Hammasi joyida")} text={t("{0} kun ichida obunasi tugaydigan mijoz yo'q", { 0: EXPIRING_DAYS })} />
         ) : (
           <div className="divide-y divide-slate-100">
             {[...expiring, ...expired].map((c) => {
@@ -126,12 +127,12 @@ export default function SuperDashboard() {
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-slate-800">{c.companyName}</p>
                     <p className="text-xs text-slate-400">
-                      {c.contactName} · {currentSub(c)?.tariffName} · {fmtDate(subEnd(c))} gacha
+                      {c.contactName} · {currentSub(c)?.tariffName} · {t("{0} gacha", { 0: fmtDate(subEnd(c)) })}
                     </p>
                   </div>
-                  {d < 0 ? <Badge tone="red">Tugagan</Badge> : <Badge tone="orange">{d === 0 ? 'Bugun tugaydi' : `${d} kun qoldi`}</Badge>}
+                  {d < 0 ? <Badge tone="red">{t("Tugagan")}</Badge> : <Badge tone="orange">{d === 0 ? t("Bugun tugaydi") : t("{0} kun qoldi", { 0: d })}</Badge>}
                   <Button size="sm" variant="soft" onClick={() => nav(`/super/subscriptions?renew=${c.id}`)}>
-                    Uzaytirish
+                    {t("Uzaytirish")}
                   </Button>
                 </div>
               )

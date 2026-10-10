@@ -16,13 +16,13 @@ import Recruiting from './pages/tenant/Recruiting'
 import Onboarding from './pages/tenant/Onboarding'
 import Employees from './pages/tenant/Employees'
 import Reports from './pages/tenant/Reports'
-import Tasks from './pages/tenant/Tasks'
 import Birthdays from './pages/tenant/Birthdays'
 import Documents from './pages/tenant/Documents'
 import Vacancies from './pages/tenant/Vacancies'
 import TenantSettings from './pages/tenant/Settings'
 import Landing from './pages/public/Landing'
 import Apply from './pages/public/Apply'
+import { t } from './lib/i18n'
 
 function Home() {
   const s = useSession()
@@ -98,7 +98,6 @@ export default function App() {
           <Route path="onboarding" element={<Onboarding />} />
           <Route path="employees" element={<Employees />} />
           <Route path="reports" element={<Reports />} />
-          <Route path="tasks" element={<Tasks />} />
           <Route path="birthdays" element={<Birthdays />} />
           <Route path="documents" element={<Documents />} />
           <Route path="vacancies" element={<Vacancies />} />

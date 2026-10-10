@@ -5,6 +5,7 @@ import { getDb, updateDb, useDb } from '../../lib/db'
 import type { Tariff } from '../../lib/types'
 import { displayPhone, durationLabel, money, uid } from '../../lib/utils'
 import { phoneTaken } from './ClientModals'
+import { t } from '../../lib/i18n'
 
 function Section({ icon, title, subtitle, children, action }: { icon: React.ReactNode; title: string; subtitle: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -27,24 +28,24 @@ function ChangePassword() {
   const [err, setErr] = useState<Record<string, string>>({})
   const save = () => {
     const e: Record<string, string> = {}
-    if (f.cur !== getDb().superAdmin.password) e.cur = "Joriy parol noto'g'ri"
-    if (f.pw.length < 6) e.pw = "Yangi parol kamida 6 ta belgidan iborat bo'lsin"
-    else if (f.pw !== f.pw2) e.pw2 = 'Parollar mos kelmadi'
+    if (f.cur !== getDb().superAdmin.password) e.cur = t("Joriy parol noto'g'ri")
+    if (f.pw.length < 6) e.pw = t("Yangi parol kamida 6 ta belgidan iborat bo'lsin")
+    else if (f.pw !== f.pw2) e.pw2 = t('Parollar mos kelmadi')
     setErr(e)
     if (Object.keys(e).length) return
     updateDb((d) => {
       d.superAdmin.password = f.pw
     })
     setF({ cur: '', pw: '', pw2: '' })
-    toast("Parol o'zgartirildi")
+    toast(t("Parol o'zgartirildi"))
   }
   return (
-    <Section icon={<KeyRound size={20} />} title="Parolni o'zgartirish" subtitle="Super admin profili paroli">
+    <Section icon={<KeyRound size={20} />} title={t("Parolni o'zgartirish")} subtitle={t("Super admin profili paroli")}>
       <div className="space-y-4">
-        <PasswordInput label="Joriy parol" value={f.cur} onChange={(e) => setF({ ...f, cur: e.target.value })} error={err.cur} autoComplete="current-password" />
-        <PasswordInput label="Yangi parol" value={f.pw} onChange={(e) => setF({ ...f, pw: e.target.value })} error={err.pw} autoComplete="new-password" />
-        <PasswordInput label="Yangi parolni takrorlang" value={f.pw2} onChange={(e) => setF({ ...f, pw2: e.target.value })} error={err.pw2} autoComplete="new-password" />
-        <Button onClick={save}>Parolni saqlash</Button>
+        <PasswordInput label={t("Joriy parol")} value={f.cur} onChange={(e) => setF({ ...f, cur: e.target.value })} error={err.cur} autoComplete="current-password" />
+        <PasswordInput label={t("Yangi parol")} value={f.pw} onChange={(e) => setF({ ...f, pw: e.target.value })} error={err.pw} autoComplete="new-password" />
+        <PasswordInput label={t("Yangi parolni takrorlang")} value={f.pw2} onChange={(e) => setF({ ...f, pw2: e.target.value })} error={err.pw2} autoComplete="new-password" />
+        <Button onClick={save}>{t("Parolni saqlash")}</Button>
       </div>
     </Section>
   )
@@ -57,10 +58,10 @@ function ChangePhone() {
   const [err, setErr] = useState<Record<string, string>>({})
   const save = () => {
     const e: Record<string, string> = {}
-    if (phone.length !== 9) e.phone = "Telefon raqamni to'liq kiriting"
-    else if (phone === db.superAdmin.phone) e.phone = 'Bu sizning joriy raqamingiz'
-    else if (phoneTaken(phone)) e.phone = 'Bu raqam boshqa foydalanuvchida'
-    if (pw !== db.superAdmin.password) e.pw = "Parol noto'g'ri"
+    if (phone.length !== 9) e.phone = t("Telefon raqamni to'liq kiriting")
+    else if (phone === db.superAdmin.phone) e.phone = t('Bu sizning joriy raqamingiz')
+    else if (phoneTaken(phone)) e.phone = t('Bu raqam boshqa foydalanuvchida')
+    if (pw !== db.superAdmin.password) e.pw = t("Parol noto'g'ri")
     setErr(e)
     if (Object.keys(e).length) return
     updateDb((d) => {
@@ -68,14 +69,14 @@ function ChangePhone() {
     })
     setPhone('')
     setPw('')
-    toast("Telefon raqam o'zgartirildi")
+    toast(t("Telefon raqam o'zgartirildi"))
   }
   return (
-    <Section icon={<Phone size={20} />} title="Telefon raqamni o'zgartirish" subtitle={`Joriy raqam: ${displayPhone(db.superAdmin.phone)}`}>
+    <Section icon={<Phone size={20} />} title={t("Telefon raqamni o'zgartirish")} subtitle={t("Joriy raqam: {0}", { 0: displayPhone(db.superAdmin.phone) })}>
       <div className="space-y-4">
-        <PhoneInput label="Yangi telefon raqam" value={phone} onChange={setPhone} error={err.phone} />
-        <PasswordInput label="Tasdiqlash uchun parol" value={pw} onChange={(e) => setPw(e.target.value)} error={err.pw} autoComplete="current-password" />
-        <Button onClick={save}>Raqamni saqlash</Button>
+        <PhoneInput label={t("Yangi telefon raqam")} value={phone} onChange={setPhone} error={err.phone} />
+        <PasswordInput label={t("Tasdiqlash uchun parol")} value={pw} onChange={(e) => setPw(e.target.value)} error={err.pw} autoComplete="current-password" />
+        <Button onClick={save}>{t("Raqamni saqlash")}</Button>
       </div>
     </Section>
   )
@@ -98,17 +99,17 @@ function TariffModal({ open, tariff, onClose }: { open: boolean; tariff?: Tariff
     const e: Record<string, string> = {}
     const p = Number(price.replace(/\s/g, ''))
     const a = Number(amount)
-    if (!name.trim()) e.name = 'Tarif nomini kiriting'
-    if (!p || p < 0) e.price = "Narxni to'g'ri kiriting"
-    if (!a || a < 1 || !Number.isInteger(a)) e.amount = "Muddatni to'g'ri kiriting"
+    if (!name.trim()) e.name = t('Tarif nomini kiriting')
+    if (!p || p < 0) e.price = t("Narxni to'g'ri kiriting")
+    if (!a || a < 1 || !Number.isInteger(a)) e.amount = t("Muddatni to'g'ri kiriting")
     setErr(e)
     if (Object.keys(e).length) return
     const data = { name: name.trim(), price: p, durationDays: a * Number(unit) }
     updateDb((d) => {
-      if (tariff) Object.assign(d.tariffs.find((t) => t.id === tariff.id)!, data)
+      if (tariff) Object.assign(d.tariffs.find((tn) => tn.id === tariff.id)!, data)
       else d.tariffs.push({ id: uid(), ...data })
     })
-    toast(tariff ? 'Tarif saqlandi' : "Tarif qo'shildi")
+    toast(tariff ? t("Tarif saqlandi") : t("Tarif qo'shildi"))
     onClose()
   }
   return (
@@ -116,22 +117,22 @@ function TariffModal({ open, tariff, onClose }: { open: boolean; tariff?: Tariff
       open={open}
       onClose={onClose}
       size="sm"
-      title={tariff ? 'Tarifni tahrirlash' : "Yangi tarif qo'shish"}
+      title={tariff ? t("Tarifni tahrirlash") : t("Yangi tarif qo'shish")}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
-          <Button onClick={save}>Saqlash</Button>
+          <Button onClick={save}>{t("Saqlash")}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Input label="Tarif nomi" value={name} onChange={(e) => setName(e.target.value)} error={err.name} placeholder="Masalan: Biznes" autoFocus />
-        <Input label="Narxi (so'm)" inputMode="numeric" value={price ? Number(price.replace(/\D/g, '')).toLocaleString('ru-RU') : ''} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ''))} error={err.price} placeholder="500 000" />
+        <Input label={t("Tarif nomi")} value={name} onChange={(e) => setName(e.target.value)} error={err.name} placeholder={t("Masalan: Biznes")} autoFocus />
+        <Input label={t("Narxi (so'm)")} inputMode="numeric" value={price ? Number(price.replace(/\D/g, '')).toLocaleString('ru-RU') : ''} onChange={(e) => setPrice(e.target.value.replace(/\D/g, ''))} error={err.price} placeholder="500 000" />
         <div className="grid grid-cols-2 gap-3">
-          <Input label="Muddati" type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} error={err.amount} />
-          <Select label="Birlik" value={unit} onChange={(e) => setUnit(e.target.value)} options={UNITS} />
+          <Input label={t("Muddati")} type="number" min={1} value={amount} onChange={(e) => setAmount(e.target.value)} error={err.amount} />
+          <Select label={t("Birlik")} value={unit} onChange={(e) => setUnit(e.target.value)} options={UNITS.map((u) => ({ ...u, label: t(u.label) }))} />
         </div>
       </div>
     </Modal>
@@ -145,39 +146,39 @@ function Tariffs() {
   return (
     <Section
       icon={<Tags size={20} />}
-      title="Tariflar"
-      subtitle="Mijozlar uchun obuna tariflari"
+      title={t("Tariflar")}
+      subtitle={t("Mijozlar uchun obuna tariflari")}
       action={
         <Button size="sm" onClick={() => setModal({ open: true })}>
-          + Tarif qo'shish
+          {t("+ Tarif qo'shish")}
         </Button>
       }
     >
       {db.tariffs.length === 0 ? (
-        <Empty title="Tariflar yo'q" text="Mijoz qo'shishdan oldin kamida bitta tarif yarating" />
+        <Empty title={t("Tariflar yo'q")} text={t("Mijoz qo'shishdan oldin kamida bitta tarif yarating")} />
       ) : (
         <div className="-m-6">
-          <Table head={['Tarif nomi', 'Narxi', 'Muddati', 'Mijozlar', '']}>
-            {db.tariffs.map((t) => (
-              <tr key={t.id}>
-                <td className="px-5 py-3.5 font-semibold text-slate-800">{t.name}</td>
-                <td className="px-5 py-3.5">{money(t.price)}</td>
-                <td className="px-5 py-3.5">{durationLabel(t.durationDays)}</td>
-                <td className="px-5 py-3.5 text-slate-500">{usage(t.id)}</td>
+          <Table head={[t("Tarif nomi"), t("Narxi"), t("Muddati"), t("Mijozlar"), '']}>
+            {db.tariffs.map((tn) => (
+              <tr key={tn.id}>
+                <td className="px-5 py-3.5 font-semibold text-slate-800">{tn.name}</td>
+                <td className="px-5 py-3.5">{money(tn.price)}</td>
+                <td className="px-5 py-3.5">{durationLabel(tn.durationDays)}</td>
+                <td className="px-5 py-3.5 text-slate-500">{usage(tn.id)}</td>
                 <td className="px-5 py-3.5">
                   <div className="flex justify-end gap-1">
-                    <IconButton title="Tahrirlash" onClick={() => setModal({ open: true, tariff: t })}>
+                    <IconButton title={t("Tahrirlash")} onClick={() => setModal({ open: true, tariff: tn })}>
                       <Pencil size={16} />
                     </IconButton>
                     <IconButton
-                      title="O'chirish"
+                      title={t("O'chirish")}
                       tone="danger"
                       onClick={() => {
-                        if (!confirm(`"${t.name}" tarifini o'chirasizmi? Mavjud obunalar o'zgarmaydi.`)) return
+                        if (!confirm(t("\"{0}\" tarifini o'chirasizmi? Mavjud obunalar o'zgarmaydi.", { 0: tn.name }))) return
                         updateDb((d) => {
-                          d.tariffs = d.tariffs.filter((x) => x.id !== t.id)
+                          d.tariffs = d.tariffs.filter((x) => x.id !== tn.id)
                         })
-                        toast("Tarif o'chirildi")
+                        toast(t("Tarif o'chirildi"))
                       }}
                     >
                       <Trash2 size={16} />
@@ -197,7 +198,7 @@ function Tariffs() {
 export default function SuperSettings() {
   return (
     <div>
-      <PageHeader title="Sozlamalar" subtitle="Profil xavfsizligi va tariflar boshqaruvi" />
+      <PageHeader title={t("Sozlamalar")} subtitle={t("Profil xavfsizligi va tariflar boshqaruvi")} />
       <div className="grid gap-6 xl:grid-cols-2">
         <ChangePassword />
         <ChangePhone />

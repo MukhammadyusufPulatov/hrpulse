@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type { Client, DB, Session, Stage, Subscription, SystemStage, Tariff, Tenant } from './types'
 import { DAY, addDays, uid } from './utils'
+import { t as tr } from './i18n'
 
 /*
  * Ma'lumotlar brauzerning localStorage'ida saqlanadi.
@@ -67,6 +68,20 @@ export function normalizePipelines(t: Tenant) {
   })
 }
 
+/** Profil ichidagi barcha ma'lumotlarni yagona (asosiy) filialga bog'laydi */
+function collapseBranches(t: Tenant) {
+  const main = t.branches[0] ?? { id: uid(), name: 'Asosiy' }
+  t.branches = [main]
+  t.candidates.forEach((c) => (c.branchId = main.id))
+  t.employees.forEach((e) => (e.branchId = main.id))
+  t.vacancies.forEach((v) => (v.branchId = main.id))
+}
+
+/** Bir xil telefon raqamli profillar — bitta mijozning filiallari */
+export function filialsOf(c: Client, clients: Client[]) {
+  return clients.filter((x) => x.phone === c.phone)
+}
+
 /** Eski versiyadagi ma'lumotlarni yangi tuzilmaga o'tkazish */
 function migrate(db: DB): DB {
   if (db.version < 2) {
@@ -82,6 +97,11 @@ function migrate(db: DB): DB {
       normalizePipelines(t)
     }
     db.version = 2
+  }
+  if (db.version < 3) {
+    // Ichki filiallar olib tashlandi: har bir profil = bitta filial
+    for (const t of Object.values(db.tenants)) collapseBranches(t)
+    db.version = 3
   }
   return db
 }
@@ -114,12 +134,10 @@ function seed(): DB {
     subscriptions: [sub(tariffs[1], ago(200)), sub(tariffs[1], ago(110)), sub(tariffs[1], ago(20))],
   }
   const t = defaultTenant()
-  t.branches = [
-    { id: uid(), name: 'Chilonzor filiali' },
-    { id: uid(), name: 'Yunusobod filiali' },
-  ]
+  t.branches = [{ id: uid(), name: 'Asosiy' }]
   t.departments = ["O'quv bo'limi", 'Sotuv', 'Marketing', 'Administratsiya'].map((name) => ({ id: uid(), name }))
-  const [b1, b2] = t.branches
+  const [b1] = t.branches
+  const b2 = b1
   const [dEdu, dSales, dMkt, dAdm] = t.departments
   t.vacancies = [
     {
@@ -186,12 +204,25 @@ function seed(): DB {
     { id: uid(), name: 'Ichki tartib qoidalari', kind: 'link', url: 'https://docs.google.com', createdAt: ago(30) },
   ]
 
+  // Ikkinchi filial: xuddi shu telefon raqamga ochilgan alohida profil
+  const filialId = uid()
+  const filial: Client = {
+    ...demo,
+    id: filialId,
+    companyName: 'Demo Akademiya — Yunusobod',
+    subdomain: 'demo-yunusobod',
+    createdAt: ago(60),
+    subscriptions: [sub(tariffs[1], ago(60)), sub(tariffs[1], ago(1))],
+  }
+  const t2 = defaultTenant()
+  t2.departments = [{ id: uid(), name: "O'quv bo'limi" }]
+
   return {
-    version: 2,
+    version: 3,
     superAdmin: { phone: '930871205', password: '1422dev', name: 'Super Admin' },
     tariffs,
-    clients: [demo],
-    tenants: { [demoId]: t },
+    clients: [demo, filial],
+    tenants: { [demoId]: t, [filialId]: t2 },
   }
 }
 
@@ -317,7 +348,7 @@ export function lifetimeDays(c: Client) {
 export const revenue = (c: Client) => c.subscriptions.reduce((s, x) => s + x.price, 0)
 
 export function canLogin(c: Client): string | null {
-  if (c.blocked) return 'Profil vaqtincha bloklangan. Administrator bilan bog\'laning.'
-  if (subStatus(c) === 'expired' || subStatus(c) === 'none') return 'Obuna muddati tugagan. Administrator bilan bog\'laning.'
+  if (c.blocked) return tr("Profil vaqtincha bloklangan. Administrator bilan bog'laning.")
+  if (subStatus(c) === 'expired' || subStatus(c) === 'none') return tr("Obuna muddati tugagan. Administrator bilan bog'laning.")
   return null
 }

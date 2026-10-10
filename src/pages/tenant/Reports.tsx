@@ -4,6 +4,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, Res
 import { Card, Empty, PageHeader, Tabs } from '../../components/ui'
 import { useTenant } from '../../lib/tenant'
 import { DAY, MONTHS } from '../../lib/utils'
+import { t } from '../../lib/i18n'
 
 const PALETTE = ['#f97316', '#3b82f6', '#10b981', '#facc15', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b']
 const tip = { borderRadius: 14, border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,.1)' }
@@ -38,7 +39,7 @@ function buckets(p: Period) {
   return Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1)
     const e = new Date(now.getFullYear(), now.getMonth() - 10 + i, 1)
-    return { name: MONTHS[d.getMonth()], from: d.getTime(), to: e.getTime() }
+    return { name: t(MONTHS[d.getMonth()]), from: d.getTime(), to: e.getTime() }
   })
 }
 
@@ -58,7 +59,7 @@ export default function Reports() {
   const tth = tthOf(hired)
   const conversion = applied.length ? (hired.length / applied.length) * 100 : 0
 
-  const channels = [...tenant.channels, { id: '', name: "Manbasiz" }]
+  const channels = [...tenant.channels, { id: '', name: t("Manbasiz") }]
   const byChannel = channels
     .map((ch) => {
       const h = hired.filter((e) => (e.channelId ?? '') === ch.id)
@@ -90,34 +91,34 @@ export default function Reports() {
   return (
     <div>
       <PageHeader
-        title="Statistika"
-        subtitle="Ishga olish tezligi va manbalar samaradorligi"
+        title={t("Statistika")}
+        subtitle={t("Ishga olish tezligi va manbalar samaradorligi")}
         actions={
           <Tabs
             value={period}
             onChange={setPeriod}
             items={[
-              { value: 'day', label: 'Kunlik' },
-              { value: 'week', label: 'Haftalik' },
-              { value: 'month', label: 'Oylik' },
-              { value: 'all', label: 'Barchasi' },
+              { value: 'day', label: t("Kunlik") },
+              { value: 'week', label: t("Haftalik") },
+              { value: 'month', label: t("Oylik") },
+              { value: 'all', label: t("Barchasi") },
             ]}
           />
         }
       />
-      <p className="-mt-3 mb-5 text-sm text-slate-400">Davr: <b className="text-slate-600">{PERIOD_LABEL[period]}</b></p>
+      <p className="-mt-3 mb-5 text-sm text-slate-400">{t("Davr:")} <b className="text-slate-600">{t(PERIOD_LABEL[period])}</b></p>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat title="Time-to-hire (o'rtacha)" value={`${tth.toFixed(1)} kun`} sub="Ariza tushganidan ishga olingungacha" icon={<Clock size={22} />} color="#f97316" />
-        <Stat title="Kelgan arizalar" value={applied.length} sub="Barcha manbalardan" icon={<Filter size={22} />} color="#3b82f6" />
-        <Stat title="Ishga olinganlar" value={hired.length} sub="Nomzoddan xodimga" icon={<UserCheck size={22} />} color="#10b981" />
-        <Stat title="Konversiya" value={`${conversion.toFixed(1)}%`} sub="Ariza → xodim" icon={<TrendingUp size={22} />} color="#8b5cf6" />
+        <Stat title={t("Time-to-hire (o'rtacha)")} value={t("{0} kun", { 0: tth.toFixed(1) })} sub={t("Ariza tushganidan ishga olingungacha")} icon={<Clock size={22} />} color="#f97316" />
+        <Stat title={t("Kelgan arizalar")} value={applied.length} sub={t("Barcha manbalardan")} icon={<Filter size={22} />} color="#3b82f6" />
+        <Stat title={t("Ishga olinganlar")} value={hired.length} sub={t("Nomzoddan xodimga")} icon={<UserCheck size={22} />} color="#10b981" />
+        <Stat title={t("Konversiya")} value={`${conversion.toFixed(1)}%`} sub={t("Ariza → xodim")} icon={<TrendingUp size={22} />} color="#8b5cf6" />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <Card className="rounded-3xl p-6 xl:col-span-2">
           <h3 className="flex items-center gap-2 font-bold text-slate-900">
-            <BarChart3 size={18} className="text-orange-500" /> Manbalar samaradorligi
+            <BarChart3 size={18} className="text-orange-500" /> {t("Manbalar samaradorligi")}
           </h3>
           {byChannel.length ? (
             <div className="mt-4 h-72">
@@ -127,17 +128,17 @@ export default function Reports() {
                   <XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fontSize: 11, fontWeight: 600, fill: '#64748b' }} tickFormatter={(v: string) => (v.length > 12 ? v.slice(0, 11) + '…' : v)} />
                   <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} width={30} />
                   <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={tip} />
-                  <Bar dataKey="count" name="Arizalar" fill="#f97316" radius={[10, 10, 0, 0]} barSize={28} />
-                  <Bar dataKey="hired" name="Ishga olingan" fill="#10b981" radius={[10, 10, 0, 0]} barSize={28} />
+                  <Bar dataKey="count" name={t("Arizalar")} fill="#f97316" radius={[10, 10, 0, 0]} barSize={28} />
+                  <Bar dataKey="hired" name={t("Ishga olingan")} fill="#10b981" radius={[10, 10, 0, 0]} barSize={28} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <Empty title="Bu davrda ma'lumot yo'q" />
+            <Empty title={t("Bu davrda ma'lumot yo'q")} />
           )}
         </Card>
         <Card className="rounded-3xl p-6">
-          <h3 className="font-bold text-slate-900">Nomzodlar manbalari</h3>
+          <h3 className="font-bold text-slate-900">{t("Nomzodlar manbalari")}</h3>
           {byChannel.length ? (
             <>
               <div className="h-48">
@@ -165,32 +166,32 @@ export default function Reports() {
               </div>
             </>
           ) : (
-            <Empty title="Ma'lumot yo'q" />
+            <Empty title={t("Ma'lumot yo'q")} />
           )}
         </Card>
       </div>
 
       <Card className="mt-6 overflow-hidden rounded-3xl">
         <div className="border-b border-slate-100 px-6 py-4">
-          <h3 className="font-bold text-slate-900">Manbalar bo'yicha batafsil</h3>
-          <p className="text-sm text-slate-400">Qaysi manba eng ko'p va eng tez xodim olib keladi</p>
+          <h3 className="font-bold text-slate-900">{t("Manbalar bo'yicha batafsil")}</h3>
+          <p className="text-sm text-slate-400">{t("Qaysi manba eng ko'p va eng tez xodim olib keladi")}</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <th className="px-6 py-3">Manba</th>
-                <th className="px-6 py-3">Arizalar</th>
-                <th className="px-6 py-3">Ishga olingan</th>
-                <th className="px-6 py-3">Konversiya</th>
-                <th className="px-6 py-3">Time-to-hire</th>
+                <th className="px-6 py-3">{t("Manba")}</th>
+                <th className="px-6 py-3">{t("Arizalar")}</th>
+                <th className="px-6 py-3">{t("Ishga olingan")}</th>
+                <th className="px-6 py-3">{t("Konversiya")}</th>
+                <th className="px-6 py-3">{t("Time-to-hire")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {byChannel.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
-                    Bu davrda ma'lumot yo'q
+                    {t("Bu davrda ma'lumot yo'q")}
                   </td>
                 </tr>
               )}
@@ -209,7 +210,7 @@ export default function Reports() {
                         {c.conv.toFixed(0)}%
                       </div>
                     </td>
-                    <td className="px-6 py-3.5">{c.hired ? `${c.tth.toFixed(1)} kun` : '—'}</td>
+                    <td className="px-6 py-3.5">{c.hired ? t("{0} kun", { 0: c.tth.toFixed(1) }) : '—'}</td>
                   </tr>
                 ))}
             </tbody>
@@ -218,8 +219,8 @@ export default function Reports() {
       </Card>
 
       <Card className="mt-6 rounded-3xl p-6">
-        <h3 className="font-bold text-slate-900">Dinamika</h3>
-        <p className="text-sm text-slate-400">{period === 'day' ? "So'nggi 14 kun, kunlik" : period === 'week' ? "So'nggi 12 hafta, haftalik" : "So'nggi 12 oy, oylik"}</p>
+        <h3 className="font-bold text-slate-900">{t("Dinamika")}</h3>
+        <p className="text-sm text-slate-400">{period === 'day' ? t("So'nggi 14 kun, kunlik") : period === 'week' ? t("So'nggi 12 hafta, haftalik") : t("So'nggi 12 oy, oylik")}</p>
         <div className="mt-4 h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={series}>
@@ -227,8 +228,8 @@ export default function Reports() {
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
               <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} width={30} />
               <Tooltip contentStyle={tip} />
-              <Line type="monotone" dataKey="arizalar" name="Arizalar" stroke="#f97316" strokeWidth={3} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="ishga" name="Ishga olinganlar" stroke="#10b981" strokeWidth={3} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="arizalar" name={t("Arizalar")} stroke="#f97316" strokeWidth={3} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="ishga" name={t("Ishga olinganlar")} stroke="#10b981" strokeWidth={3} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>

@@ -29,6 +29,10 @@ Brauzerda: http://localhost:5180
 - Mijozning kirish sahifasi (subdomain): `demo.hrpulse.uz`, lokal: `HR-PULSE.html#/c/demo` — mijoz rangida, faqat shu kompaniya admini va HR menejerlari kira oladi
 - Kompaniyaning vakansiyalar sahifasi: `#/c/demo/jobs`
 
+**Filiallar:** super admin bir xil telefon raqamga bir nechta profil ochsa, ular bitta mijozning filiallari bo'ladi (parol umumiy). Admin yuqoridagi dropdown orqali filiallar orasida o'tadi; har bir filialning bo'limlari, vakansiyalari, nomzodlari va xodimlari alohida.
+
+**Tillar:** o'zbek, rus, ingliz — yuqoridagi UZ / RU / EN tugmalari. Tarjimalar `src/lib/dict.ts` faylida (kalit — o'zbekcha matn).
+
 ## Bo'limlar
 
 **Super admin**
@@ -38,9 +42,9 @@ Brauzerda: http://localhost:5180
 - Sozlamalar — parol va telefon raqamni o'zgartirish, tariflar (nomi, narxi, muddati)
 
 **Mijoz admini** (primary rangi mijozniki bo'ladi)
-- Dashboard, Rekruiting (kanban, drag & drop), Onboarding, Xodimlar, Hisobotlar, Tasklar,
+- Dashboard, Rekruiting (kanban, drag & drop), Onboarding, Xodimlar, Statistika,
   Tug'ilgan kunlar, Hujjatlar, Vakansiyalar (anketa savollari, kanal bo'yicha link), Sozlamalar
-  (filiallar, kanallar, bo'limlar, HR menejerlar, landing havolalari)
+  (manbalar, vakansiya bo'limlari, HR menejerlar, landing havolasi)
 
 **Ommaviy sahifalar**
 - `/c/<subdomain>` — kompaniyaning vakansiyalar sahifasi

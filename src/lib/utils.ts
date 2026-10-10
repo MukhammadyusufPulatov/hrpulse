@@ -1,3 +1,5 @@
+import { t } from './i18n'
+
 export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4)
 
 export const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ')
@@ -18,13 +20,13 @@ export function formatPhone(s: string) {
 export const displayPhone = (s: string) => (s ? '+998 ' + formatPhone(s) : '—')
 
 export function money(n: number) {
-  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ') + " so'm"
+  return Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ') + ' ' + t("so'm")
 }
 
 export function shortMoney(n: number) {
-  if (n >= 1e9) return (n / 1e9).toFixed(1).replace('.0', '') + ' mlrd'
-  if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.0', '') + ' mln'
-  if (n >= 1e3) return Math.round(n / 1e3) + ' ming'
+  if (n >= 1e9) return (n / 1e9).toFixed(1).replace('.0', '') + ' ' + t('mlrd')
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.0', '') + ' ' + t('mln')
+  if (n >= 1e3) return Math.round(n / 1e3) + ' ' + t('ming')
   return String(n)
 }
 
@@ -42,10 +44,10 @@ export function fmtDateTime(iso: string) {
 
 export function timeAgo(iso: string) {
   const s = (Date.now() - +new Date(iso)) / 1000
-  if (s < 60) return 'hozirgina'
-  if (s < 3600) return Math.floor(s / 60) + ' daqiqa oldin'
-  if (s < 86400) return Math.floor(s / 3600) + ' soat oldin'
-  if (s < 86400 * 30) return Math.floor(s / 86400) + ' kun oldin'
+  if (s < 60) return t('hozirgina')
+  if (s < 3600) return t('{0} daqiqa oldin', { 0: Math.floor(s / 60) })
+  if (s < 86400) return t('{0} soat oldin', { 0: Math.floor(s / 3600) })
+  if (s < 86400 * 30) return t('{0} kun oldin', { 0: Math.floor(s / 86400) })
   return fmtDate(iso)
 }
 
@@ -56,9 +58,9 @@ export function addDays(iso: string | Date, days: number) {
 }
 
 export function durationLabel(days: number) {
-  if (days % 365 === 0) return `${days / 365} yil`
-  if (days % 30 === 0) return `${days / 30} oy`
-  return `${days} kun`
+  if (days % 365 === 0) return t('{0} yil', { 0: days / 365 })
+  if (days % 30 === 0) return t('{0} oy', { 0: days / 30 })
+  return t('{0} kun', { 0: days })
 }
 
 export const MONTHS = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek']

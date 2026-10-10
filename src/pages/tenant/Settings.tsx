@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Building, Copy, ExternalLink, KeyRound, Layers, Radio, Trash2, UserCog } from 'lucide-react'
+import { Copy, ExternalLink, KeyRound, Layers, Radio, Trash2, UserCog } from 'lucide-react'
 import { Avatar, Button, Card, IconButton, Input, Modal, PageHeader, PasswordInput, PhoneInput, toast } from '../../components/ui'
 import { updateDb } from '../../lib/db'
 import { useTenant } from '../../lib/tenant'
 import type { Named, Tenant } from '../../lib/types'
 import { appUrl, copyText, displayPhone, uid } from '../../lib/utils'
 import { phoneTaken } from '../super/ClientModals'
+import { t } from '../../lib/i18n'
 
 function Box({ icon, title, subtitle, children, action }: { icon: React.ReactNode; title: string; subtitle?: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -24,24 +25,24 @@ function Box({ icon, title, subtitle, children, action }: { icon: React.ReactNod
 }
 
 /** Filiallar / kanallar / bo'limlar uchun oddiy ro'yxat muharriri */
-function ListEditor({ field, placeholder, usedBy }: { field: 'branches' | 'channels' | 'departments'; placeholder: string; usedBy: (t: Tenant, id: string) => number }) {
+function ListEditor({ field, placeholder, usedBy }: { field: 'channels' | 'departments'; placeholder: string; usedBy: (tn: Tenant, id: string) => number }) {
   const { tenant, update } = useTenant()
   const [name, setName] = useState('')
   const items: Named[] = tenant[field]
   const add = () => {
     if (!name.trim()) return
-    if (items.some((i) => i.name.toLowerCase() === name.trim().toLowerCase())) return toast('Bu nom allaqachon mavjud', 'error')
-    update((t) => t[field].push({ id: uid(), name: name.trim() }))
+    if (items.some((i) => i.name.toLowerCase() === name.trim().toLowerCase())) return toast(t('Bu nom allaqachon mavjud'), 'error')
+    update((tn) => tn[field].push({ id: uid(), name: name.trim() }))
     setName('')
   }
   return (
     <div>
       <div className="flex gap-2">
         <input className="h-10 flex-1 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" placeholder={placeholder} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} />
-        <Button onClick={add}>Qo'shish</Button>
+        <Button onClick={add}>{t("Qo'shish")}</Button>
       </div>
       <div className="mt-3 space-y-1.5">
-        {items.length === 0 && <p className="py-4 text-center text-sm text-slate-400">Hozircha yo'q</p>}
+        {items.length === 0 && <p className="py-4 text-center text-sm text-slate-400">{t("Hozircha yo'q")}</p>}
         {items.map((i) => (
           <div key={i.id} className="flex items-center gap-2 rounded-xl bg-slate-50 py-1.5 pl-3 pr-1.5">
             <input
@@ -49,7 +50,7 @@ function ListEditor({ field, placeholder, usedBy }: { field: 'branches' | 'chann
               defaultValue={i.name}
               onBlur={(e) => {
                 const v = e.target.value.trim()
-                if (v && v !== i.name) update((t) => (t[field].find((x) => x.id === i.id)!.name = v))
+                if (v && v !== i.name) update((tn) => (tn[field].find((x) => x.id === i.id)!.name = v))
                 else e.target.value = i.name
               }}
             />
@@ -57,9 +58,7 @@ function ListEditor({ field, placeholder, usedBy }: { field: 'branches' | 'chann
             <IconButton
               tone="danger"
               onClick={() => {
-                if (field === 'branches' && items.length <= 1) return toast("Kamida bitta filial bo'lishi kerak", 'error')
-                if (usedBy(tenant, i.id) > 0 && field === 'branches') return toast('Bu filialda nomzod yoki xodimlar bor', 'error')
-                if (confirm(`"${i.name}" o'chirilsinmi?`)) update((t) => (t[field] = t[field].filter((x) => x.id !== i.id)))
+                if (confirm(t("\"{0}\" o'chirilsinmi?", { 0: i.name }))) update((tn) => (tn[field] = tn[field].filter((x) => x.id !== i.id)))
               }}
             >
               <Trash2 size={15} />
@@ -77,14 +76,14 @@ function ManagerModal({ onClose }: { onClose: () => void }) {
   const [err, setErr] = useState<Record<string, string>>({})
   const save = () => {
     const e: Record<string, string> = {}
-    if (!f.name.trim()) e.name = 'Ism-familiyani kiriting'
-    if (f.phone.length !== 9) e.phone = "Telefon raqam to'liq emas"
-    else if (phoneTaken(f.phone)) e.phone = 'Bu raqam allaqachon ishlatilgan'
-    if (f.password.length < 4) e.password = 'Kamida 4 ta belgi'
+    if (!f.name.trim()) e.name = t('Ism-familiyani kiriting')
+    if (f.phone.length !== 9) e.phone = t("Telefon raqam to'liq emas")
+    else if (phoneTaken(f.phone)) e.phone = t('Bu raqam allaqachon ishlatilgan')
+    if (f.password.length < 4) e.password = t('Kamida 4 ta belgi')
     setErr(e)
     if (Object.keys(e).length) return
-    update((t) => t.managers.push({ id: uid(), name: f.name.trim(), phone: f.phone, password: f.password, createdAt: new Date().toISOString() }))
-    toast("HR menejer qo'shildi")
+    update((tn) => tn.managers.push({ id: uid(), name: f.name.trim(), phone: f.phone, password: f.password, createdAt: new Date().toISOString() }))
+    toast(t("HR menejer qo'shildi"))
     onClose()
   }
   return (
@@ -92,21 +91,21 @@ function ManagerModal({ onClose }: { onClose: () => void }) {
       open
       onClose={onClose}
       size="sm"
-      title="Menejer qo'shish"
-      subtitle="Menejer shu telefon va parol bilan tizimga kiradi"
+      title={t("Menejer qo'shish")}
+      subtitle={t("Menejer shu telefon va parol bilan tizimga kiradi")}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
-          <Button onClick={save}>Saqlash</Button>
+          <Button onClick={save}>{t("Saqlash")}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <Input label="Ism-Familiya" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={err.name} autoFocus />
-        <PhoneInput label="Telefon raqam" value={f.phone} onChange={(phone) => setF({ ...f, phone })} error={err.phone} />
-        <PasswordInput label="Maxfiy parol" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} error={err.password} autoComplete="new-password" />
+        <Input label={t("Ism-Familiya")} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={err.name} autoFocus />
+        <PhoneInput label={t("Telefon raqam")} value={f.phone} onChange={(phone) => setF({ ...f, phone })} error={err.phone} />
+        <PasswordInput label={t("Maxfiy parol")} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} error={err.password} autoComplete="new-password" />
       </div>
     </Modal>
   )
@@ -118,23 +117,23 @@ function ProfilePassword() {
   const [err, setErr] = useState<Record<string, string>>({})
   const save = () => {
     const e: Record<string, string> = {}
-    if (f.cur !== client.password) e.cur = "Joriy parol noto'g'ri"
-    if (f.pw.length < 4) e.pw = 'Kamida 4 ta belgi'
-    else if (f.pw !== f.pw2) e.pw2 = 'Parollar mos kelmadi'
+    if (f.cur !== client.password) e.cur = t("Joriy parol noto'g'ri")
+    if (f.pw.length < 4) e.pw = t('Kamida 4 ta belgi')
+    else if (f.pw !== f.pw2) e.pw2 = t('Parollar mos kelmadi')
     setErr(e)
     if (Object.keys(e).length) return
     updateDb((d) => {
-      d.clients.find((c) => c.id === client.id)!.password = f.pw
+      d.clients.filter((c) => c.phone === client.phone).forEach((c) => (c.password = f.pw))
     })
     setF({ cur: '', pw: '', pw2: '' })
-    toast("Parol o'zgartirildi")
+    toast(t("Parol o'zgartirildi"))
   }
   return (
     <div className="space-y-3">
-      <PasswordInput label="Joriy parol" value={f.cur} onChange={(e) => setF({ ...f, cur: e.target.value })} error={err.cur} autoComplete="current-password" />
-      <PasswordInput label="Yangi parol" value={f.pw} onChange={(e) => setF({ ...f, pw: e.target.value })} error={err.pw} autoComplete="new-password" />
-      <PasswordInput label="Takrorlang" value={f.pw2} onChange={(e) => setF({ ...f, pw2: e.target.value })} error={err.pw2} autoComplete="new-password" />
-      <Button onClick={save}>Saqlash</Button>
+      <PasswordInput label={t("Joriy parol")} value={f.cur} onChange={(e) => setF({ ...f, cur: e.target.value })} error={err.cur} autoComplete="current-password" />
+      <PasswordInput label={t("Yangi parol")} value={f.pw} onChange={(e) => setF({ ...f, pw: e.target.value })} error={err.pw} autoComplete="new-password" />
+      <PasswordInput label={t("Takrorlang")} value={f.pw2} onChange={(e) => setF({ ...f, pw2: e.target.value })} error={err.pw2} autoComplete="new-password" />
+      <Button onClick={save}>{t("Saqlash")}</Button>
     </div>
   )
 }
@@ -143,33 +142,30 @@ export default function TenantSettings() {
   const { tenant, update, client } = useTenant()
   const [mgr, setMgr] = useState(false)
   const landing = (branchId?: string) => appUrl(`/c/${client.subdomain}/jobs${branchId ? `?branch=${branchId}` : ''}`)
-  const copy = async (u: string) => (await copyText(u)) && toast('Nusxalandi!')
+  const copy = async (u: string) => (await copyText(u)) && toast(t('Nusxalandi!'))
 
   return (
     <div>
-      <PageHeader title="Sozlamalar" subtitle="Tizimni sozlash va foydalanuvchilar boshqaruvi" />
+      <PageHeader title={t("Sozlamalar")} subtitle={t("Tizimni sozlash va foydalanuvchilar boshqaruvi")} />
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        <Box icon={<Building size={18} />} title="Filiallar">
-          <ListEditor field="branches" placeholder="Yangi filial nomi..." usedBy={(t, id) => t.candidates.filter((c) => c.branchId === id).length + t.employees.filter((e) => e.branchId === id).length} />
+        <Box icon={<Radio size={18} />} title={t("Manbalar")} subtitle={t("Nomzodlar qayerdan keladi: Instagram, Telegram...")}>
+          <ListEditor field="channels" placeholder={t("Yangi manba nomi...")} usedBy={(tn, id) => tn.candidates.filter((c) => c.channelId === id).length} />
         </Box>
-        <Box icon={<Radio size={18} />} title="Manbalar" subtitle="Nomzodlar qayerdan keladi: Instagram, Telegram...">
-          <ListEditor field="channels" placeholder="Yangi manba nomi..." usedBy={(t, id) => t.candidates.filter((c) => c.channelId === id).length} />
-        </Box>
-        <Box icon={<Layers size={18} />} title="Vakansiya bo'limlari" subtitle="Masalan: Marketing — bo'lim, Videograf — vakansiya">
-          <ListEditor field="departments" placeholder="Masalan: Marketing" usedBy={(t, id) => t.employees.filter((e) => e.departmentId === id).length} />
+        <Box icon={<Layers size={18} />} title={t("Vakansiya bo'limlari")} subtitle={t("Masalan: Marketing — bo'lim, Videograf — vakansiya")}>
+          <ListEditor field="departments" placeholder={t("Masalan: Marketing")} usedBy={(tn, id) => tn.employees.filter((e) => e.departmentId === id).length} />
         </Box>
 
         <Box
           icon={<UserCog size={18} />}
-          title="HR Menejerlar"
-          subtitle="Tizimga kira oladigan xodimlar"
+          title={t("HR Menejerlar")}
+          subtitle={t("Tizimga kira oladigan xodimlar")}
           action={
             <Button size="sm" onClick={() => setMgr(true)}>
-              + Menejer
+              {t("+ Menejer")}
             </Button>
           }
         >
-          {tenant.managers.length === 0 && <p className="py-4 text-center text-sm text-slate-400">HR menejerlar yo'q</p>}
+          {tenant.managers.length === 0 && <p className="py-4 text-center text-sm text-slate-400">{t("HR menejerlar yo'q")}</p>}
           <div className="space-y-2">
             {tenant.managers.map((m) => (
               <div key={m.id} className="flex items-center gap-3 rounded-xl bg-slate-50 p-2.5">
@@ -179,13 +175,13 @@ export default function TenantSettings() {
                   <p className="text-xs text-slate-400">{displayPhone(m.phone)}</p>
                 </div>
                 <IconButton
-                  title="Parolni o'zgartirish"
+                  title={t("Parolni o'zgartirish")}
                   onClick={() => {
-                    const pw = prompt(`${m.name} uchun yangi parol (kamida 4 belgi):`)
+                    const pw = prompt(t("{0} uchun yangi parol (kamida 4 belgi):", { 0: m.name }))
                     if (pw === null) return
-                    if (pw.length < 4) return toast('Parol juda qisqa', 'error')
-                    update((t) => (t.managers.find((x) => x.id === m.id)!.password = pw))
-                    toast("Parol o'zgartirildi")
+                    if (pw.length < 4) return toast(t('Parol juda qisqa'), 'error')
+                    update((tn) => (tn.managers.find((x) => x.id === m.id)!.password = pw))
+                    toast(t("Parol o'zgartirildi"))
                   }}
                 >
                   <KeyRound size={15} />
@@ -193,7 +189,7 @@ export default function TenantSettings() {
                 <IconButton
                   tone="danger"
                   onClick={() => {
-                    if (confirm(`${m.name}ni o'chirasizmi? U tizimga kira olmaydi.`)) update((t) => (t.managers = t.managers.filter((x) => x.id !== m.id)))
+                    if (confirm(t("{0}ni o'chirasizmi? U tizimga kira olmaydi.", { 0: m.name }))) update((tn) => (tn.managers = tn.managers.filter((x) => x.id !== m.id)))
                   }}
                 >
                   <Trash2 size={15} />
@@ -203,9 +199,9 @@ export default function TenantSettings() {
           </div>
         </Box>
 
-        <Box icon={<ExternalLink size={18} />} title="Landing page havolasi" subtitle="Kompaniyangiz uchun alohida vakansiyalar sahifasi">
+        <Box icon={<ExternalLink size={18} />} title={t("Landing page havolasi")} subtitle={t("Kompaniyangiz uchun alohida vakansiyalar sahifasi")}>
           <div className="space-y-2">
-            {(tenant.branches.length > 1 ? [{ id: '', name: 'Barcha filiallar' }, ...tenant.branches] : [{ id: '', name: 'Barcha vakansiyalar' }]).map((b) => (
+            {[{ id: '', name: t("Barcha vakansiyalar") }].map((b) => (
               <div key={b.id} className="flex items-center gap-2 rounded-xl bg-slate-50 p-2.5">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{b.name}</p>
@@ -222,7 +218,7 @@ export default function TenantSettings() {
           </div>
         </Box>
 
-        <Box icon={<KeyRound size={18} />} title="Profil paroli" subtitle={`Login: ${displayPhone(client.phone)}`}>
+        <Box icon={<KeyRound size={18} />} title={t("Profil paroli")} subtitle={t("Login: {0}", { 0: displayPhone(client.phone) })}>
           <ProfilePassword />
         </Box>
       </div>

@@ -3,13 +3,22 @@ import { Button, ColorPicker, Input, Modal, PasswordInput, PhoneInput, Select, t
 import { defaultTenant, getDb, subEnd, updateDb, useDb } from '../../lib/db'
 import type { Client } from '../../lib/types'
 import { addDays, durationLabel, fmtDate, money, uid } from '../../lib/utils'
+import { t } from '../../lib/i18n'
 
-/** Telefon raqam boshqa foydalanuvchida bandmi? */
-export function phoneTaken(phone: string, exceptClientId?: string) {
+/**
+ * Telefon raqam boshqa foydalanuvchida bandmi?
+ * allowClients — mijoz profili uchun: boshqa mijozning raqami bo'lsa band emas (yangi profil uning filiali bo'ladi).
+ */
+export function phoneTaken(phone: string, exceptClientId?: string, allowClients = false) {
   const db = getDb()
   if (db.superAdmin.phone === phone) return true
-  if (db.clients.some((c) => c.phone === phone && c.id !== exceptClientId)) return true
-  return Object.values(db.tenants).some((t) => t.managers.some((m) => m.phone === phone))
+  if (!allowClients && db.clients.some((c) => c.phone === phone && c.id !== exceptClientId)) return true
+  return Object.values(db.tenants).some((tn) => tn.managers.some((m) => m.phone === phone))
+}
+
+/** Shu raqamdagi mavjud profil (filial guruhi) */
+export function groupOwner(phone: string, exceptClientId?: string) {
+  return getDb().clients.find((c) => c.phone === phone && c.id !== exceptClientId)
 }
 
 const SUB_RE = /^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$/
@@ -29,19 +38,22 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
 
   const set = (k: keyof typeof f) => (v: string) => setF((x) => ({ ...x, [k]: v }))
 
+  // Raqam boshqa profilga tegishli bo'lsa — yangi profil uning filiali, parol umumiy
+  const owner = f.phone.length === 9 ? groupOwner(f.phone, client?.id) : undefined
+
   const save = () => {
     const e: Record<string, string> = {}
     const sub = f.subdomain.trim().toLowerCase()
-    if (!f.companyName.trim()) e.companyName = 'Kompaniya nomini kiriting'
-    if (!f.contactName.trim()) e.contactName = "Mas'ul shaxsni kiriting"
-    if (f.phone.length !== 9) e.phone = "Telefon raqam to'liq emas"
-    else if (phoneTaken(f.phone, client?.id)) e.phone = 'Bu raqam allaqachon ishlatilgan'
-    if (!SUB_RE.test(sub)) e.subdomain = 'Faqat lotin harflari, raqam va "-" (masalan: registon)'
-    else if (db.clients.some((c) => c.subdomain === sub && c.id !== client?.id)) e.subdomain = 'Bu subdomain band'
-    if (f.instagram.trim() && !/^https?:\/\//.test(f.instagram.trim())) e.instagram = 'Link https:// bilan boshlanishi kerak'
+    if (!f.companyName.trim()) e.companyName = t('Kompaniya nomini kiriting')
+    if (!f.contactName.trim()) e.contactName = t("Mas'ul shaxsni kiriting")
+    if (f.phone.length !== 9) e.phone = t("Telefon raqam to'liq emas")
+    else if (phoneTaken(f.phone, client?.id, true)) e.phone = t('Bu raqam allaqachon ishlatilgan')
+    if (!SUB_RE.test(sub)) e.subdomain = t('Faqat lotin harflari, raqam va "-" (masalan: registon)')
+    else if (db.clients.some((c) => c.subdomain === sub && c.id !== client?.id)) e.subdomain = t('Bu subdomain band')
+    if (f.instagram.trim() && !/^https?:\/\//.test(f.instagram.trim())) e.instagram = t('Link https:// bilan boshlanishi kerak')
     if (!client) {
-      if (!f.tariffId) e.tariffId = 'Tarif tanlang (Sozlamalar → Tariflar)'
-      if (f.password.length < 4) e.password = 'Kamida 4 ta belgi'
+      if (!f.tariffId) e.tariffId = t('Tarif tanlang (Sozlamalar → Tariflar)')
+      if (!owner && f.password.length < 4) e.password = t('Kamida 4 ta belgi')
     }
     setErr(e)
     if (Object.keys(e).length) return
@@ -50,10 +62,11 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
       updateDb((d) => {
         const c = d.clients.find((x) => x.id === client.id)!
         Object.assign(c, { companyName: f.companyName.trim(), contactName: f.contactName.trim(), phone: f.phone, subdomain: sub, primaryColor: f.primaryColor, instagram: f.instagram.trim() || undefined })
+        if (owner) c.password = owner.password
       })
-      toast("Mijoz ma'lumotlari saqlandi")
+      toast(t("Mijoz ma'lumotlari saqlandi"))
     } else {
-      const t = db.tariffs.find((x) => x.id === f.tariffId)!
+      const tn = db.tariffs.find((x) => x.id === f.tariffId)!
       const now = new Date().toISOString()
       const id = uid()
       updateDb((d) => {
@@ -62,16 +75,16 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
           companyName: f.companyName.trim(),
           contactName: f.contactName.trim(),
           phone: f.phone,
-          password: f.password,
+          password: owner ? owner.password : f.password,
           subdomain: sub,
           primaryColor: f.primaryColor,
           instagram: f.instagram.trim() || undefined,
           createdAt: now,
-          subscriptions: [{ id: uid(), tariffId: t.id, tariffName: t.name, price: t.price, start: now, end: addDays(now, t.durationDays) }],
+          subscriptions: [{ id: uid(), tariffId: tn.id, tariffName: tn.name, price: tn.price, start: now, end: addDays(now, tn.durationDays) }],
         })
         d.tenants[id] = defaultTenant()
       })
-      toast("Mijoz qo'shildi")
+      toast(t("Mijoz qo'shildi"))
     }
     onClose()
   }
@@ -80,23 +93,26 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
     <Modal
       open={open}
       onClose={onClose}
-      title={client ? 'Mijozni tahrirlash' : "Yangi mijoz qo'shish"}
-      subtitle={client ? undefined : "Mijoz shu telefon raqam va parol orqali o'z admin profiliga kiradi"}
+      title={client ? t("Mijozni tahrirlash") : t("Yangi mijoz qo'shish")}
+      subtitle={client ? undefined : t("Mijoz shu telefon raqam va parol orqali o'z admin profiliga kiradi")}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
-          <Button onClick={save}>{client ? 'Saqlash' : "Qo'shish"}</Button>
+          <Button onClick={save}>{client ? t("Saqlash") : t("Qo'shish")}</Button>
         </>
       }
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Input label="Kompaniya nomi" value={f.companyName} onChange={(e) => set('companyName')(e.target.value)} error={err.companyName} placeholder="Masalan: Registon o'quv markazi" className="sm:col-span-2" />
-        <Input label="Mas'ul shaxsning ism-familiyasi" value={f.contactName} onChange={(e) => set('contactName')(e.target.value)} error={err.contactName} placeholder="Ism Familiya" />
-        <PhoneInput label="Telefon raqami" value={f.phone} onChange={set('phone')} error={err.phone} />
+        <Input label={t("Kompaniya nomi")} value={f.companyName} onChange={(e) => set('companyName')(e.target.value)} error={err.companyName} placeholder={t("Masalan: Registon o'quv markazi")} className="sm:col-span-2" />
+        <Input label={t("Mas'ul shaxsning ism-familiyasi")} value={f.contactName} onChange={(e) => set('contactName')(e.target.value)} error={err.contactName} placeholder={t("Ism Familiya")} />
+        <div>
+          <PhoneInput label={t("Telefon raqami")} value={f.phone} onChange={set('phone')} error={err.phone} />
+          {owner && <p className="mt-1.5 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs text-blue-700">{t("Bu raqam «{0}» profiliga tegishli — bu profil uning filiali bo'ladi, parol umumiy.", { 0: owner.companyName })}</p>}
+        </div>
         <div className="sm:col-span-2">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-500">Subdomain uchun nom</span>
+          <span className="mb-1.5 block text-xs font-semibold text-slate-500">{t("Subdomain uchun nom")}</span>
           <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-white focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10">
             <input
               className="h-full flex-1 rounded-l-xl bg-transparent px-3.5 text-sm outline-none"
@@ -109,28 +125,32 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
           {err.subdomain && <span className="mt-1 block text-xs text-red-500">{err.subdomain}</span>}
         </div>
         <Input
-          label="Instagram sahifasi linki"
+          label={t("Instagram sahifasi linki")}
           value={f.instagram}
           onChange={(e) => set('instagram')(e.target.value)}
           error={err.instagram}
           placeholder="https://instagram.com/kompaniya"
-          hint="Ariza yuborgan nomzodga 'Instagramda kuzatib boring' tugmasi chiqadi"
+          hint={t("Ariza yuborgan nomzodga 'Instagramda kuzatib boring' tugmasi chiqadi")}
           className="sm:col-span-2"
         />
         <div className="sm:col-span-2">
-          <ColorPicker label="Primary rang" value={f.primaryColor} onChange={set('primaryColor')} />
+          <ColorPicker label={t("Primary rang")} value={f.primaryColor} onChange={set('primaryColor')} />
         </div>
         {!client && (
           <>
             <Select
-              label="Tarif"
+              label={t("Tarif")}
               value={f.tariffId}
               onChange={(e) => set('tariffId')(e.target.value)}
               error={err.tariffId}
-              placeholder="Tanlang"
-              options={db.tariffs.map((t) => ({ value: t.id, label: `${t.name} — ${money(t.price)} / ${durationLabel(t.durationDays)}` }))}
+              placeholder={t("Tanlang")}
+              options={db.tariffs.map((tn) => ({ value: tn.id, label: `${tn.name} — ${money(tn.price)} / ${durationLabel(tn.durationDays)}` }))}
             />
-            <PasswordInput label="Parol" value={f.password} onChange={(e) => set('password')(e.target.value)} error={err.password} placeholder="Kamida 4 belgi" autoComplete="new-password" />
+            {owner ? (
+              <div className="rounded-xl bg-slate-50 px-3.5 py-3 text-sm text-slate-500">{t("Parol: «{0}» bilan umumiy", { 0: owner.companyName })}</div>
+            ) : (
+            <PasswordInput label={t("Parol")} value={f.password} onChange={(e) => set('password')(e.target.value)} error={err.password} placeholder={t("Kamida 4 belgi")} autoComplete="new-password" />
+            )}
           </>
         )}
       </div>
@@ -148,12 +168,13 @@ export function SetPasswordModal({ client, onClose }: { client: Client | null; o
     setErr('')
   }, [client])
   const save = () => {
-    if (pw.length < 4) return setErr("Parol kamida 4 ta belgidan iborat bo'lsin")
-    if (pw !== pw2) return setErr('Parollar mos kelmadi')
+    if (pw.length < 4) return setErr(t("Parol kamida 4 ta belgidan iborat bo'lsin"))
+    if (pw !== pw2) return setErr(t('Parollar mos kelmadi'))
     updateDb((d) => {
-      d.clients.find((c) => c.id === client!.id)!.password = pw
+      // Bir xil telefon raqamli barcha profillar (filiallar) uchun umumiy parol
+      d.clients.filter((c) => c.phone === client!.phone).forEach((c) => (c.password = pw))
     })
-    toast("Parol o'rnatildi")
+    toast(t("Parol o'rnatildi"))
     onClose()
   }
   return (
@@ -161,20 +182,20 @@ export function SetPasswordModal({ client, onClose }: { client: Client | null; o
       open={!!client}
       onClose={onClose}
       size="sm"
-      title="Parol o'rnatish"
+      title={t("Parol o'rnatish")}
       subtitle={client?.companyName}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
-          <Button onClick={save}>Saqlash</Button>
+          <Button onClick={save}>{t("Saqlash")}</Button>
         </>
       }
     >
       <div className="space-y-4">
-        <PasswordInput label="Yangi parol" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" autoFocus />
-        <PasswordInput label="Parolni takrorlang" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" error={err} />
+        <PasswordInput label={t("Yangi parol")} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" autoFocus />
+        <PasswordInput label={t("Parolni takrorlang")} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" error={err} />
       </div>
     </Modal>
   )
@@ -185,15 +206,15 @@ export function RenewModal({ client, onClose }: { client: Client | null; onClose
   const [tariffId, setTariffId] = useState('')
   useEffect(() => setTariffId(client?.subscriptions.at(-1)?.tariffId ?? db.tariffs[0]?.id ?? ''), [client, db.tariffs])
   if (!client) return null
-  const t = db.tariffs.find((x) => x.id === tariffId)
+  const tn = db.tariffs.find((x) => x.id === tariffId)
   const end = subEnd(client)
   const start = end && end > new Date().toISOString() ? end : new Date().toISOString()
   const save = () => {
-    if (!t) return
+    if (!tn) return
     updateDb((d) => {
-      d.clients.find((c) => c.id === client.id)!.subscriptions.push({ id: uid(), tariffId: t.id, tariffName: t.name, price: t.price, start, end: addDays(start, t.durationDays) })
+      d.clients.find((c) => c.id === client.id)!.subscriptions.push({ id: uid(), tariffId: tn.id, tariffName: tn.name, price: tn.price, start, end: addDays(start, tn.durationDays) })
     })
-    toast('Obuna uzaytirildi')
+    toast(t('Obuna uzaytirildi'))
     onClose()
   }
   return (
@@ -201,33 +222,33 @@ export function RenewModal({ client, onClose }: { client: Client | null; onClose
       open
       onClose={onClose}
       size="sm"
-      title="Obunani uzaytirish"
+      title={t("Obunani uzaytirish")}
       subtitle={client.companyName}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Bekor qilish
+            {t("Bekor qilish")}
           </Button>
-          <Button onClick={save} disabled={!t}>
-            Tasdiqlash
+          <Button onClick={save} disabled={!tn}>
+            {t("Tasdiqlash")}
           </Button>
         </>
       }
     >
-      <Select label="Tarif" value={tariffId} onChange={(e) => setTariffId(e.target.value)} options={db.tariffs.map((x) => ({ value: x.id, label: `${x.name} — ${money(x.price)} / ${durationLabel(x.durationDays)}` }))} />
-      {t && (
+      <Select label={t("Tarif")} value={tariffId} onChange={(e) => setTariffId(e.target.value)} options={db.tariffs.map((x) => ({ value: x.id, label: `${x.name} — ${money(x.price)} / ${durationLabel(x.durationDays)}` }))} />
+      {tn && (
         <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm">
           <div className="flex justify-between py-1">
-            <span className="text-slate-500">Boshlanish</span>
+            <span className="text-slate-500">{t("Boshlanish")}</span>
             <span className="font-semibold">{fmtDate(start)}</span>
           </div>
           <div className="flex justify-between py-1">
-            <span className="text-slate-500">Tugash</span>
-            <span className="font-semibold">{fmtDate(addDays(start, t.durationDays))}</span>
+            <span className="text-slate-500">{t("Tugash")}</span>
+            <span className="font-semibold">{fmtDate(addDays(start, tn.durationDays))}</span>
           </div>
           <div className="flex justify-between py-1">
-            <span className="text-slate-500">Summa</span>
-            <span className="font-bold text-slate-900">{money(t.price)}</span>
+            <span className="text-slate-500">{t("Summa")}</span>
+            <span className="font-bold text-slate-900">{money(tn.price)}</span>
           </div>
         </div>
       )}

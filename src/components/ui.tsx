@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLA
 import { createPortal } from 'react-dom'
 import { Camera, CheckCircle2, Eye, EyeOff, Inbox, Info, X, XCircle } from 'lucide-react'
 import { COLORS, cn, fileToDataUrl, formatPhone, initials, normalizePhone } from '../lib/utils'
+import { t } from '../lib/i18n'
 
 // ---------------- Button ----------------
 type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'soft'
@@ -172,14 +173,14 @@ export function PhotoInput({ value, onChange, name = '' }: { value?: string; onC
       </button>
       <div className="text-xs text-slate-500">
         <button type="button" className="font-semibold text-brand cursor-pointer" onClick={() => ref.current?.click()}>
-          Rasm yuklash
+          {t("Rasm yuklash")}
         </button>
         {value && (
           <button type="button" className="ml-3 text-red-500 cursor-pointer" onClick={() => onChange(undefined)}>
-            O'chirish
+            {t("O'chirish")}
           </button>
         )}
-        <p className="mt-0.5">JPG yoki PNG</p>
+        <p className="mt-0.5">{t("JPG yoki PNG")}</p>
       </div>
       <input
         ref={ref}
@@ -287,7 +288,7 @@ export function Tabs<T extends string>({ value, onChange, items }: { value: T; o
   )
 }
 
-export function SearchInput({ value, onChange, placeholder = 'Qidiruv...', className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
+export function SearchInput({ value, onChange, placeholder = t("Qidiruv..."), className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {
   return (
     <div className={cn('relative', className)}>
       <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -338,7 +339,7 @@ export function Modal({
             <h3 className="text-lg font-bold text-slate-900">{title}</h3>
             {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
           </div>
-          <IconButton onClick={onClose} aria-label="Yopish">
+          <IconButton onClick={onClose} aria-label={t("Yopish")}>
             <X size={18} />
           </IconButton>
         </div>
@@ -352,7 +353,7 @@ export function Modal({
 
 // ---------------- Toast ----------------
 type ToastItem = { id: number; text: string; type: 'success' | 'error' | 'info' }
-let toastListener: ((t: ToastItem) => void) | null = null
+let toastListener: ((tn: ToastItem) => void) | null = null
 export function toast(text: string, type: ToastItem['type'] = 'success') {
   toastListener?.({ id: Date.now() + Math.random(), text, type })
 }
@@ -360,9 +361,9 @@ export function toast(text: string, type: ToastItem['type'] = 'success') {
 export function Toaster() {
   const [items, setItems] = useState<ToastItem[]>([])
   useEffect(() => {
-    toastListener = (t) => {
-      setItems((x) => [...x, t])
-      setTimeout(() => setItems((x) => x.filter((i) => i.id !== t.id)), 3200)
+    toastListener = (tn) => {
+      setItems((x) => [...x, tn])
+      setTimeout(() => setItems((x) => x.filter((i) => i.id !== tn.id)), 3200)
     }
     return () => {
       toastListener = null
@@ -370,10 +371,10 @@ export function Toaster() {
   }, [])
   return createPortal(
     <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex flex-col gap-2">
-      {items.map((t) => (
-        <div key={t.id} className="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl animate-pop">
-          {t.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-400" /> : t.type === 'error' ? <XCircle size={18} className="text-red-400" /> : <Info size={18} className="text-blue-400" />}
-          {t.text}
+      {items.map((tn) => (
+        <div key={tn.id} className="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl animate-pop">
+          {tn.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-400" /> : tn.type === 'error' ? <XCircle size={18} className="text-red-400" /> : <Info size={18} className="text-blue-400" />}
+          {tn.text}
         </div>
       ))}
     </div>,
@@ -416,7 +417,7 @@ export function Drawer({ open, onClose, title, actions, children }: { open: bool
         <div className="flex items-center gap-2 border-b border-slate-100 px-6 py-4">
           <h3 className="flex-1 text-lg font-bold text-slate-900">{title}</h3>
           {actions}
-          <IconButton onClick={onClose} aria-label="Yopish">
+          <IconButton onClick={onClose} aria-label={t("Yopish")}>
             <X size={18} />
           </IconButton>
         </div>
