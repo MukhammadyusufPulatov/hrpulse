@@ -1,14 +1,23 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, CheckCircle2, MapPin, Upload } from 'lucide-react'
-import { Badge, Button, Empty, Input, PhoneInput, Textarea } from '../../components/ui'
+import { Camera, CheckCircle2, ChevronDown, ChevronRight, Instagram, Send, Sparkles, Upload, ListChecks } from 'lucide-react'
+import { Empty } from '../../components/ui'
 import { canLogin, updateDb, useDb } from '../../lib/db'
 import { SUPER_BRAND, useBrand } from '../../lib/theme'
-import { nameOf } from '../../lib/tenant'
-import type { Answer } from '../../lib/types'
-import { cn, fileToDataUrl, uid } from '../../lib/utils'
+import type { Answer, Question } from '../../lib/types'
+import { cn, fileToDataUrl, formatPhone, normalizePhone, uid } from '../../lib/utils'
 
 const MAX_FILE = 1.5 * 1024 * 1024
+const fieldCls = 'h-12 w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand focus:bg-white focus:ring-4 focus:ring-brand/10'
+
+function Label({ text, required }: { text: string; required?: boolean }) {
+  return (
+    <span className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      {text}
+      {required && <span className="text-red-500"> *</span>}
+    </span>
+  )
+}
 
 export default function Apply() {
   const { sub, vacancyId, channelId } = useParams()
@@ -18,12 +27,11 @@ export default function Apply() {
   const t = client && db.tenants[client.id]
   const v = t?.vacancies.find((x) => x.id === vacancyId)
 
+  const [step, setStep] = useState<'info' | 'form' | 'done'>('info')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [answers, setAnswers] = useState<Record<string, { value: string; fileName?: string }>>({})
   const [err, setErr] = useState<Record<string, string>>({})
-  const [sent, setSent] = useState(false)
-  const [busy, setBusy] = useState(false)
 
   if (!client || !t || !v || !v.active || canLogin(client))
     return (
@@ -32,22 +40,76 @@ export default function Apply() {
       </div>
     )
 
-  if (sent)
+  const go = (s: typeof step) => {
+    setStep(s)
+    window.scrollTo({ top: 0 })
+  }
+
+  if (step === 'done')
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-        <div className="w-full max-w-md rounded-3xl bg-white p-10 text-center shadow-sm">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500">
-            <CheckCircle2 size={36} />
+      <div className="flex min-h-screen items-center justify-center bg-white p-6">
+        <div className="w-full max-w-lg text-center">
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 ring-8 ring-emerald-50/50">
+            <CheckCircle2 size={44} className="text-emerald-500" />
           </div>
-          <h1 className="mt-5 text-2xl font-extrabold text-slate-900">Arizangiz qabul qilindi</h1>
-          <p className="mt-2 text-slate-500">HR menejerimiz sizga tez orada aloqaga chiqadi.</p>
-          <Link to={`/c/${client.subdomain}`} className="mt-6 inline-block text-sm font-semibold text-brand">
-            Boshqa vakansiyalar
-          </Link>
+          <h1 className="mt-8 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">Arizangiz qabul qilindi</h1>
+          <p className="mt-4 text-lg text-slate-500">HR menejerimiz sizga tez orada aloqaga chiqadi.</p>
+          {client.instagram && (
+            <a
+              href={client.instagram}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-10 inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-fuchsia-600 via-pink-500 to-orange-400 px-8 py-4 font-bold text-white shadow-xl shadow-pink-500/25 transition hover:-translate-y-0.5"
+            >
+              <Instagram size={20} /> Instagramda kuzatib boring
+            </a>
+          )}
+          <div className="mt-6">
+            <Link to={`/c/${client.subdomain}/jobs`} className="text-sm font-semibold text-slate-400 hover:text-slate-700">
+              Boshqa vakansiyalar
+            </Link>
+          </div>
         </div>
       </div>
     )
 
+  const lines = (s: string) => s.split('\n').map((x) => x.replace(/^[-•*\s]+/, '').trim()).filter(Boolean)
+
+  if (step === 'info')
+    return (
+      <div className="min-h-screen bg-white">
+        <main className="mx-auto max-w-4xl px-6 py-14">
+          <span className="rounded-full bg-brand/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-brand">Vakansiya</span>
+          <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">{v.title}</h1>
+          <p className="mt-3 text-slate-500">{client.companyName} jamoasining bir qismiga aylaning.</p>
+          <div className="mt-12 grid gap-10 md:grid-cols-2">
+            {[
+              { title: 'Imkoniyatlar', icon: <Sparkles size={15} />, items: lines(v.talents), fallback: 'Kompaniyamiz ajoyib sharoitlar va mustahkam kelajak taklif etadi.', on: true },
+              { title: 'Talablar', icon: <ListChecks size={15} />, items: lines(v.requirements), fallback: 'Nomzod uchun maxsus talablar belgilanmagan.', on: false },
+            ].map((col) => (
+              <div key={col.title}>
+                <h3 className="mb-5 flex items-center gap-2 text-xs font-extrabold uppercase tracking-widest text-slate-400">
+                  <span className="text-brand">{col.icon}</span> {col.title}
+                </h3>
+                <ul className="space-y-4">
+                  {(col.items.length ? col.items : [col.fallback]).map((l, i) => (
+                    <li key={i} className="flex gap-3 text-[15px] leading-relaxed text-slate-700">
+                      <span className={cn('mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[11px] font-bold', col.on ? 'bg-brand/10 text-brand' : 'bg-slate-100 text-slate-400')}>✓</span>
+                      {l}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => go('form')} className="mt-14 inline-flex items-center gap-2 rounded-2xl bg-brand px-8 py-4 font-bold text-white shadow-xl shadow-brand/30 transition hover:-translate-y-0.5 cursor-pointer">
+            Ariza yuborish <ChevronRight size={18} />
+          </button>
+        </main>
+      </div>
+    )
+
+  // ------------- Anketa -------------
   const setA = (id: string, value: string, fileName?: string) => setAnswers((a) => ({ ...a, [id]: { value, fileName } }))
 
   const submit = (e: FormEvent) => {
@@ -56,13 +118,20 @@ export default function Apply() {
     if (!name.trim()) er.name = 'Ism-familiyangizni kiriting'
     if (phone.length !== 9) er.phone = "Telefon raqamni to'liq kiriting"
     v.questions.forEach((q) => {
-      if (q.required && !answers[q.id]?.value) er[q.id] = 'Majburiy savol'
+      const val = answers[q.id]?.value ?? ''
+      if (q.required && !val) er[q.id] = 'Majburiy savol'
+      else if (q.type === 'phone' && val && val.length !== 9) er[q.id] = "Telefon raqam to'liq emas"
     })
     setErr(er)
-    if (Object.keys(er).length) return
-    setBusy(true)
+    if (Object.keys(er).length) {
+      document.getElementById(Object.keys(er)[0])?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     const now = new Date().toISOString()
-    const list: Answer[] = v.questions.map((q) => ({ question: q.text, type: q.type, value: answers[q.id]?.value ?? '', fileName: answers[q.id]?.fileName }))
+    const list: Answer[] = v.questions.map((q) => {
+      const a = answers[q.id]
+      return { question: q.text, type: q.type, value: q.type === 'phone' && a?.value ? '+998 ' + formatPhone(a.value) : a?.value ?? '', fileName: a?.fileName }
+    })
     const photo = v.questions.find((q) => q.type === 'photo' && answers[q.id]?.value)
     const channel = t.channels.find((c) => c.id === channelId)
     updateDb((d) => {
@@ -76,7 +145,7 @@ export default function Apply() {
         vacancyId: v.id,
         channelId: channel?.id,
         pipeline: 'recruiting',
-        stageId: tt.stages[0]?.id ?? '',
+        stageId: tt.stages.find((s) => s.system === 'new')?.id ?? tt.stages[0]?.id ?? '',
         extra: [],
         answers: list,
         comments: [],
@@ -85,127 +154,118 @@ export default function Apply() {
       })
       tt.notices.unshift({ id: uid(), to: 'all', text: `Yangi ariza: ${name.trim()} — "${v.title}"${channel ? ` (${channel.name})` : ''}`, at: now, read: false })
     })
-    setBusy(false)
-    setSent(true)
+    go('done')
   }
 
-  const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean)
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-brand px-6 pb-20 pt-10 text-white">
-        <div className="mx-auto max-w-2xl">
-          <Link to={`/c/${client.subdomain}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/80 hover:text-white">
-            <ArrowLeft size={16} /> {client.companyName}
-          </Link>
-          <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">{v.title}</h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/85">
-            <span className="flex items-center gap-1">
-              <MapPin size={15} /> {nameOf(t.branches, v.branchId)}
-            </span>
-            <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold">{v.type === 'full_time' ? 'Full-time' : 'Part-time'}</span>
+  const renderQ = (q: Question) => {
+    const val = answers[q.id]?.value ?? ''
+    const error = err[q.id]
+    let input: React.ReactNode
+    switch (q.type) {
+      case 'phone':
+        input = (
+          <div className={cn(fieldCls, 'flex items-center gap-2 px-0')}>
+            <span className="pl-4 text-sm font-semibold text-slate-500">+998</span>
+            <input inputMode="tel" className="h-full flex-1 bg-transparent pr-4 outline-none" placeholder="90 123 45 67" value={formatPhone(val)} onChange={(e) => setA(q.id, normalizePhone(e.target.value))} />
           </div>
-        </div>
-      </header>
-      <main className="mx-auto -mt-12 max-w-2xl space-y-4 px-4 pb-16">
-        {(v.talents || v.requirements) && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {[
-              ['Imkoniyatlar', v.talents, 'Kompaniyamiz ajoyib sharoitlar taklif etadi.'],
-              ['Talablar', v.requirements, 'Maxsus talablar belgilanmagan.'],
-            ].map(([title, text, fallback]) => (
-              <div key={title} className="rounded-3xl bg-white p-6 shadow-sm">
-                <h3 className="font-bold text-slate-900">{title}</h3>
-                <ul className="mt-3 space-y-2">
-                  {(lines(text).length ? lines(text) : [fallback]).map((l, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-slate-600">
-                      <Check size={16} className="mt-0.5 shrink-0 text-brand" /> {l}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        )
+        break
+      case 'date':
+        input = <input type="date" className={fieldCls} value={val} onChange={(e) => setA(q.id, e.target.value)} />
+        break
+      case 'select':
+        input = (
+          <div className="relative">
+            <select className={cn(fieldCls, 'cursor-pointer appearance-none pr-10 font-semibold')} value={val} onChange={(e) => setA(q.id, e.target.value)}>
+              <option value="">Tanlang...</option>
+              {q.options.map((o) => (
+                <option key={o}>{o}</option>
+              ))}
+            </select>
+            <ChevronDown size={18} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
+          </div>
+        )
+        break
+      case 'multi': {
+        const sel = val ? val.split(', ') : []
+        input = (
+          <div className="flex flex-wrap gap-2">
+            {q.options.map((o) => (
+              <button
+                type="button"
+                key={o}
+                onClick={() => setA(q.id, (sel.includes(o) ? sel.filter((x) => x !== o) : [...sel, o]).join(', '))}
+                className={cn('rounded-xl border px-4 py-2.5 text-sm font-medium transition cursor-pointer', sel.includes(o) ? 'border-brand bg-brand/10 text-brand' : 'border-slate-100 bg-slate-50 text-slate-600')}
+              >
+                {sel.includes(o) && '✓ '}
+                {o}
+              </button>
             ))}
           </div>
-        )}
+        )
+        break
+      }
+      case 'photo':
+      case 'file':
+        input = (
+          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-6 text-sm text-slate-400 transition hover:border-brand hover:text-brand">
+            {q.type === 'photo' && val ? <img src={val} className="h-24 w-24 rounded-2xl object-cover" alt="" /> : q.type === 'photo' ? <Camera size={22} /> : <Upload size={22} />}
+            <span className="font-semibold">{answers[q.id]?.fileName ?? 'Yuklash uchun bosing'}</span>
+            <input
+              type="file"
+              hidden
+              accept={q.type === 'photo' ? 'image/*' : '.pdf,.doc,.docx,image/*'}
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                if (!f) return
+                if (f.size > MAX_FILE && q.type === 'file') return setErr((x) => ({ ...x, [q.id]: 'Fayl hajmi 1.5 MB dan oshmasin' }))
+                setErr((x) => ({ ...x, [q.id]: '' }))
+                setA(q.id, await fileToDataUrl(f, q.type === 'photo' ? 400 : 1600), f.name)
+              }}
+            />
+          </label>
+        )
+        break
+      default:
+        input = <input className={fieldCls} value={val} onChange={(e) => setA(q.id, e.target.value)} />
+    }
+    return (
+      <div key={q.id} id={q.id}>
+        <Label text={q.text} required={q.required} />
+        {input}
+        {error && <span className="mt-1.5 block text-xs text-red-500">{error}</span>}
+      </div>
+    )
+  }
 
-        <form onSubmit={submit} className="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="text-xl font-extrabold text-slate-900">Anketani to'ldiring</h2>
-          <p className="mt-1 text-sm text-slate-500">Ma'lumotlaringizni kiriting, biz albatta ko'rib chiqamiz.</p>
-          <div className="mt-6 space-y-5">
-            <Input label="To'liq ism-familiyangiz *" value={name} onChange={(e) => setName(e.target.value)} error={err.name} placeholder="Masalan: Azizbek Olimov" />
-            <PhoneInput label="Telefon raqamingiz *" value={phone} onChange={setPhone} error={err.phone} />
-            {v.questions.map((q) => {
-              const label = q.text + (q.required ? ' *' : '')
-              const val = answers[q.id]?.value ?? ''
-              if (q.type === 'text') return <Textarea key={q.id} label={label} value={val} onChange={(e) => setA(q.id, e.target.value)} error={err[q.id]} className="[&_textarea]:min-h-[60px]" />
-              if (q.type === 'select')
-                return (
-                  <div key={q.id}>
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-500">{label}</span>
-                    <div className="flex flex-wrap gap-2">
-                      {q.options.map((o) => (
-                        <button type="button" key={o} onClick={() => setA(q.id, o)} className={cn('rounded-xl border px-4 py-2 text-sm font-medium cursor-pointer', val === o ? 'border-brand bg-brand/10 text-brand' : 'border-slate-200 text-slate-600')}>
-                          {o}
-                        </button>
-                      ))}
-                    </div>
-                    {err[q.id] && <span className="mt-1 block text-xs text-red-500">{err[q.id]}</span>}
-                  </div>
-                )
-              if (q.type === 'multi') {
-                const sel = val ? val.split(', ') : []
-                return (
-                  <div key={q.id}>
-                    <span className="mb-1.5 block text-xs font-semibold text-slate-500">{label}</span>
-                    <div className="flex flex-wrap gap-2">
-                      {q.options.map((o) => (
-                        <button
-                          type="button"
-                          key={o}
-                          onClick={() => setA(q.id, (sel.includes(o) ? sel.filter((x) => x !== o) : [...sel, o]).join(', '))}
-                          className={cn('rounded-xl border px-4 py-2 text-sm font-medium cursor-pointer', sel.includes(o) ? 'border-brand bg-brand/10 text-brand' : 'border-slate-200 text-slate-600')}
-                        >
-                          {sel.includes(o) && '✓ '}
-                          {o}
-                        </button>
-                      ))}
-                    </div>
-                    {err[q.id] && <span className="mt-1 block text-xs text-red-500">{err[q.id]}</span>}
-                  </div>
-                )
-              }
-              // photo / file
-              return (
-                <div key={q.id}>
-                  <span className="mb-1.5 block text-xs font-semibold text-slate-500">{label}</span>
-                  <label className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 p-5 text-sm text-slate-500 hover:border-brand hover:text-brand">
-                    {q.type === 'photo' && val ? <img src={val} className="h-24 w-24 rounded-xl object-cover" alt="" /> : <Upload size={22} />}
-                    {answers[q.id]?.fileName ?? (q.type === 'photo' ? 'Rasm yuklash uchun bosing' : 'Fayl yuklash uchun bosing (1.5 MB gacha)')}
-                    <input
-                      type="file"
-                      hidden
-                      accept={q.type === 'photo' ? 'image/*' : '.pdf,.doc,.docx,image/*'}
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0]
-                        if (!f) return
-                        if (f.size > MAX_FILE && q.type === 'file') return setErr((x) => ({ ...x, [q.id]: 'Fayl hajmi 1.5 MB dan oshmasin' }))
-                        setErr((x) => ({ ...x, [q.id]: '' }))
-                        setA(q.id, await fileToDataUrl(f, q.type === 'photo' ? 400 : 1600), f.name)
-                      }}
-                    />
-                  </label>
-                  {err[q.id] && <span className="mt-1 block text-xs text-red-500">{err[q.id]}</span>}
-                </div>
-              )
-            })}
+  return (
+    <div className="min-h-screen bg-white">
+      <main className="mx-auto max-w-xl px-6 py-12">
+        <span className="rounded-full bg-brand/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-brand">{v.title}</span>
+        <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-slate-900">Anketani to'ldiring</h1>
+        <p className="mt-2 text-sm text-slate-500">Ma'lumotlaringizni kiriting, biz albatta ko'rib chiqamiz.</p>
+        <form onSubmit={submit} className="mt-8 space-y-5">
+          <div id="name">
+            <Label text="To'liq ism-familiyangiz" required />
+            <input className={fieldCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Azizbek Olimov" />
+            {err.name && <span className="mt-1.5 block text-xs text-red-500">{err.name}</span>}
           </div>
-          <Button type="submit" size="lg" className="mt-8 w-full" disabled={busy}>
-            Ariza yuborish
-          </Button>
+          <div id="phone">
+            <Label text="Telefon raqamingiz" required />
+            <div className={cn(fieldCls, 'flex items-center gap-2 px-0')}>
+              <span className="pl-4 text-sm font-semibold text-slate-500">+998</span>
+              <input inputMode="tel" className="h-full flex-1 bg-transparent pr-4 outline-none" placeholder="90 123 45 67" value={formatPhone(phone)} onChange={(e) => setPhone(normalizePhone(e.target.value))} />
+            </div>
+            {err.phone && <span className="mt-1.5 block text-xs text-red-500">{err.phone}</span>}
+          </div>
+          {v.questions.map(renderQ)}
+          <button type="submit" className="!mt-10 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand font-bold text-white shadow-xl shadow-brand/30 transition hover:opacity-95 cursor-pointer">
+            Yuborish <Send size={17} />
+          </button>
+          <button type="button" onClick={() => go('info')} className="block w-full text-center text-sm font-semibold text-slate-400 hover:text-slate-700 cursor-pointer">
+            Ortga qaytish
+          </button>
         </form>
-        <p className="text-center text-xs text-slate-400">
-          <Badge>HR PULSE</Badge>
-        </p>
       </main>
     </div>
   )

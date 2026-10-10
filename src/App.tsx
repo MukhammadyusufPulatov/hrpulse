@@ -5,7 +5,7 @@ import { SuperLayout, TenantLayout } from './components/Layout'
 import { canLogin, setSession, useDb, useSession } from './lib/db'
 import { TenantProvider } from './lib/tenant'
 import { SUPER_BRAND, useBrand } from './lib/theme'
-import Login from './pages/Login'
+import Login, { TenantLogin } from './pages/Login'
 import SuperDashboard from './pages/super/Dashboard'
 import Clients from './pages/super/Clients'
 import ClientView from './pages/super/ClientView'
@@ -26,7 +26,9 @@ import Apply from './pages/public/Apply'
 
 function Home() {
   const s = useSession()
-  if (!s) return <Navigate to="/login" replace />
+  // demo.hrpulse.uz kabi subdomain orqali ochilganda — mijozning login sahifasi
+  const sub = window.location.hostname.match(/^([a-z0-9-]+)\.hrpulse\.uz$/)?.[1]
+  if (!s) return <Navigate to={sub && sub !== 'www' ? `/c/${sub}` : '/login'} replace />
   return <Navigate to={s.role === 'super' ? '/super/dashboard' : '/app/dashboard'} replace />
 }
 
@@ -110,7 +112,8 @@ export default function App() {
           />
         </Route>
 
-        <Route path="/c/:sub" element={<Landing />} />
+        <Route path="/c/:sub" element={<TenantLogin />} />
+        <Route path="/c/:sub/jobs" element={<Landing />} />
         <Route path="/apply/:sub/:vacancyId/:channelId?" element={<Apply />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

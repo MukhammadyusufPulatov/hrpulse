@@ -7,6 +7,7 @@ import {
 import { setSession, subStatus, useDb } from '../lib/db'
 import { useTenant } from '../lib/tenant'
 import { cn, timeAgo } from '../lib/utils'
+import { daysToBirthday } from '../pages/tenant/Birthdays'
 import { Avatar } from './ui'
 
 type Item = { to: string; label: string; icon: ReactNode; children?: { to: string; label: string; dot?: string }[]; badge?: number }
@@ -74,7 +75,7 @@ function NavItem({ item, onNavigate }: { item: Item; onNavigate: () => void }) {
   )
 }
 
-function Shell({ items, brand, header, footer, children }: { items: Item[]; brand: ReactNode; header?: ReactNode; footer: ReactNode; children: ReactNode }) {
+function Shell({ items, brand, header, footer, banner, children }: { items: Item[]; brand: ReactNode; header?: ReactNode; footer: ReactNode; banner?: ReactNode; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   const loc = useLocation()
   useEffect(() => setOpen(false), [loc.pathname])
@@ -110,13 +111,14 @@ function Shell({ items, brand, header, footer, children }: { items: Item[]; bran
           </button>
           <div className="flex flex-1 items-center justify-end gap-2">{header}</div>
         </header>
+        {banner}
         <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">{children}</main>
       </div>
     </div>
   )
 }
 
-function UserFooter({ name, role }: { name: string; role: string }) {
+function UserFooter({ name, role, logoutTo = '/login' }: { name: string; role: string; logoutTo?: string }) {
   const nav = useNavigate()
   return (
     <div className="flex items-center gap-3 rounded-xl p-2">
@@ -129,7 +131,7 @@ function UserFooter({ name, role }: { name: string; role: string }) {
         title="Chiqish"
         onClick={() => {
           setSession(null)
-          nav('/login')
+          nav(logoutTo)
         }}
         className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
       >
@@ -232,15 +234,31 @@ export function TenantLayout({ children }: { children: ReactNode }) {
     { to: '/app/recruiting', label: 'Rekruiting', icon: <UserPlus size={19} /> },
     { to: '/app/onboarding', label: 'Onboarding', icon: <Rocket size={19} /> },
     { to: '/app/employees', label: 'Xodimlar', icon: <Users size={19} /> },
-    { to: '/app/reports', label: 'Hisobotlar', icon: <BarChart3 size={19} /> },
+    { to: '/app/reports', label: 'Statistika', icon: <BarChart3 size={19} /> },
     { to: '/app/tasks', label: 'Tasklar', icon: <ClipboardList size={19} />, badge: pendingTasks },
     { to: '/app/birthdays', label: "Tug'ilgan kunlar", icon: <Cake size={19} /> },
     { to: '/app/documents', label: 'Hujjatlar', icon: <FileText size={19} /> },
     { to: '/app/vacancies', label: 'Vakansiyalar', icon: <Briefcase size={19} /> },
     ...(isAdmin ? [{ to: '/app/settings', label: 'Sozlamalar', icon: <Settings size={19} /> }] : []),
   ]
+  // Bugun tug'ilgan kuni bo'lgan xodimlar — kun bo'yi admin va HR menejerlarga ko'rinib turadi
+  const bdays = tenant.employees.filter((e) => e.birthDate && daysToBirthday(e.birthDate) === 0)
+  const banner = bdays.length > 0 && (
+    <div className="sticky top-16 z-10 overflow-hidden border-b border-pink-200 bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400 text-white shadow-sm animate-drop">
+      <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-2.5 text-sm sm:px-6">
+        <Cake size={18} className="shrink-0" />
+        <p className="flex-1">
+          Bugun <b>{bdays.map((e) => e.name).join(', ')}</b>ning tug'ilgan kuni. Tabriklashni unutmang! 🎉
+        </p>
+        <NavLink to="/app/birthdays" className="shrink-0 rounded-lg bg-white/20 px-3 py-1 text-xs font-bold hover:bg-white/30">
+          Ko'rish
+        </NavLink>
+      </div>
+    </div>
+  )
   return (
     <Shell
+      banner={banner}
       items={items}
       brand={<Logo name={client.companyName} sub={`${client.subdomain}.hrpulse.uz`} />}
       header={
@@ -249,7 +267,7 @@ export function TenantLayout({ children }: { children: ReactNode }) {
           <Notifications />
         </>
       }
-      footer={<UserFooter name={meName} role={isAdmin ? 'Admin' : 'HR menejer'} />}
+      footer={<UserFooter name={meName} role={isAdmin ? 'Admin' : 'HR menejer'} logoutTo={`/c/${client.subdomain}`} />}
     >
       {children}
     </Shell>

@@ -7,7 +7,7 @@
 }
 
 :root {
-  --brand: #4f46e5;
+  --brand: #111111;
 }
 
 body {
@@ -24,3 +24,7 @@ body {
 .scroll-thin::-webkit-scrollbar { height: 8px; width: 8px }
 .scroll-thin::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 8px }
 .scroll-thin::-webkit-scrollbar-track { background: transparent }
+@keyframes slide { from { transform: translateX(40px); opacity: 0 } to { transform: none; opacity: 1 } }
+.animate-slide { animation: slide .2s ease-out }
+@keyframes drop { from { transform: translateY(-100%); opacity: 0 } to { transform: none; opacity: 1 } }
+.animate-drop { animation: drop .35s ease-out }

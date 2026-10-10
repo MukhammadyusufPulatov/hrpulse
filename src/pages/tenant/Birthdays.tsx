@@ -1,7 +1,9 @@
-import { Cake, Gift, PartyPopper } from 'lucide-react'
-import { Avatar, Badge, Button, Card, Empty, PageHeader } from '../../components/ui'
-import { nameOf, useTenant } from '../../lib/tenant'
-import { DAY, MONTHS, displayPhone } from '../../lib/utils'
+import { Cake, CalendarDays, Clock, Gift, PartyPopper, User } from 'lucide-react'
+import { Button, Card, Empty, PageHeader } from '../../components/ui'
+import { useTenant } from '../../lib/tenant'
+import { DAY } from '../../lib/utils'
+
+export const MONTHS_FULL = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr']
 
 /** Keyingi tug'ilgan kungacha qolgan kunlar (0 = bugun) */
 export function daysToBirthday(birth: string) {
@@ -26,9 +28,6 @@ export default function Birthdays() {
     .filter((e) => e.birthDate && inBranch(e.branchId))
     .map((e) => ({ e, days: daysToBirthday(e.birthDate!), age: turningAge(e.birthDate!) }))
     .sort((a, b) => a.days - b.days)
-  const today = list.filter((x) => x.days === 0)
-  const upcoming = list.filter((x) => x.days > 0 && x.days <= 30)
-  const later = list.filter((x) => x.days > 30)
   const noDate = tenant.employees.filter((e) => !e.birthDate && inBranch(e.branchId)).length
 
   const congrats = (id: string) =>
@@ -37,79 +36,63 @@ export default function Birthdays() {
       x.congratulatedYear = x.congratulatedYear === year ? undefined : year
     })
 
-  const Row = ({ x }: { x: (typeof list)[number] }) => {
-    const [, m, d] = x.e.birthDate!.split('-').map(Number)
-    const done = x.e.congratulatedYear === year
-    return (
-      <div className="flex flex-wrap items-center gap-4 px-6 py-4">
-        <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-pink-50 text-pink-600">
-          <span className="text-base font-extrabold leading-none">{d}</span>
-          <span className="text-[10px] font-semibold uppercase">{MONTHS[m - 1]}</span>
-        </div>
-        <Avatar name={x.e.name} photo={x.e.photo} size={40} />
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-slate-800">{x.e.name}</p>
-          <p className="text-xs text-slate-400">
-            {x.e.position || nameOf(tenant.departments, x.e.departmentId)} · {displayPhone(x.e.phone)}
-          </p>
-        </div>
-        {x.days === 0 ? <Badge tone="red">Bugun · {x.age} yosh</Badge> : <Badge tone={x.days <= 7 ? 'orange' : 'slate'}>{x.days} kundan keyin · {x.age} yosh</Badge>}
-        {x.days === 0 &&
-          (done ? (
-            <Button size="sm" variant="soft" icon={<PartyPopper size={14} />} onClick={() => congrats(x.e.id)}>
-              Tabriklandi
-            </Button>
-          ) : (
-            <Button size="sm" icon={<Gift size={14} />} onClick={() => congrats(x.e.id)}>
-              Tabriklash
-            </Button>
-          ))}
-      </div>
-    )
-  }
-
-  const Section = ({ title, items }: { title: string; items: typeof list }) =>
-    items.length ? (
-      <Card className="mb-6">
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h3 className="font-bold text-slate-900">
-            {title} <span className="font-normal text-slate-400">({items.length})</span>
-          </h3>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {items.map((x) => (
-            <Row key={x.e.id} x={x} />
-          ))}
-        </div>
-      </Card>
-    ) : null
-
   return (
     <div>
       <PageHeader title="Tug'ilgan kunlar" subtitle="Xodimlarning eng yaqin tug'ilgan kunlari" />
-      {today.length > 0 && (
-        <div className="mb-6 flex items-center gap-4 rounded-2xl bg-gradient-to-r from-pink-500 to-orange-400 p-5 text-white shadow-lg shadow-pink-200">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
-            <Cake size={26} />
-          </div>
-          <div>
-            <p className="text-lg font-bold">Bugun {today.map((x) => x.e.name).join(', ')}ning tug'ilgan kuni!</p>
-            <p className="text-sm text-white/80">Tabriklashni unutmang 🎉</p>
-          </div>
-        </div>
-      )}
       {list.length === 0 ? (
-        <Card>
-          <Empty icon={<Cake size={26} />} title="Yaqin orada tug'ilgan kunlar yo'q" text="Xodimlar bo'limida tug'ilgan sanalarni kiriting" />
+        <Card className="rounded-3xl">
+          <Empty icon={<Cake size={26} />} title="Tug'ilgan kunlar yo'q" text="Xodimlar bo'limida tug'ilgan sanalarni kiriting" />
         </Card>
       ) : (
-        <>
-          <Section title="Bugun" items={today} />
-          <Section title="Yaqin 30 kun ichida" items={upcoming} />
-          <Section title="Keyinroq" items={later} />
-        </>
+        <div className="space-y-4">
+          {list.map(({ e, days, age }) => {
+            const [y, m, d] = e.birthDate!.split('-').map(Number)
+            const today = days === 0
+            const done = e.congratulatedYear === year
+            return (
+              <Card key={e.id} className={`flex flex-wrap items-center gap-5 rounded-3xl p-5 sm:p-6 ${today ? 'border-pink-200 bg-gradient-to-r from-pink-50 to-white' : ''}`}>
+                {e.photo ? (
+                  <img src={e.photo} alt="" className="h-20 w-20 rounded-2xl object-cover sm:h-24 sm:w-24" />
+                ) : (
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand/10 text-brand sm:h-24 sm:w-24">
+                    <User size={34} />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">{e.name}</p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-3 text-sm">
+                    <span className="font-bold uppercase tracking-widest text-slate-400">
+                      {d} {MONTHS_FULL[m - 1]}
+                    </span>
+                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                    <span className="flex items-center gap-1.5 font-semibold text-slate-700">
+                      <CalendarDays size={15} className="text-brand" /> {y}, {d} {MONTHS_FULL[m - 1]}
+                    </span>
+                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                    <span className="text-slate-500">{age} yoshga to'ladi</span>
+                  </div>
+                </div>
+                {today ? (
+                  done ? (
+                    <Button variant="soft" size="lg" icon={<PartyPopper size={17} />} onClick={() => congrats(e.id)}>
+                      Tabriklandi
+                    </Button>
+                  ) : (
+                    <Button size="lg" className="!bg-pink-500 shadow-lg !shadow-pink-500/25" icon={<Gift size={17} />} onClick={() => congrats(e.id)}>
+                      Tabriklash
+                    </Button>
+                  )
+                ) : (
+                  <span className="flex h-12 items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-5 text-sm font-semibold text-slate-400">
+                    <Clock size={16} /> Kutilmoqda · {days} kun
+                  </span>
+                )}
+              </Card>
+            )
+          })}
+        </div>
       )}
-      {noDate > 0 && <p className="text-center text-sm text-slate-400">{noDate} ta xodimning tug'ilgan sanasi kiritilmagan</p>}
+      {noDate > 0 && <p className="mt-6 text-center text-sm text-slate-400">{noDate} ta xodimning tug'ilgan sanasi kiritilmagan</p>}
     </div>
   )
 }

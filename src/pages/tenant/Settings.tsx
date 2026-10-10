@@ -142,7 +142,7 @@ function ProfilePassword() {
 export default function TenantSettings() {
   const { tenant, update, client } = useTenant()
   const [mgr, setMgr] = useState(false)
-  const landing = (branchId?: string) => appUrl(`/c/${client.subdomain}${branchId ? `?branch=${branchId}` : ''}`)
+  const landing = (branchId?: string) => appUrl(`/c/${client.subdomain}/jobs${branchId ? `?branch=${branchId}` : ''}`)
   const copy = async (u: string) => (await copyText(u)) && toast('Nusxalandi!')
 
   return (
@@ -152,11 +152,11 @@ export default function TenantSettings() {
         <Box icon={<Building size={18} />} title="Filiallar">
           <ListEditor field="branches" placeholder="Yangi filial nomi..." usedBy={(t, id) => t.candidates.filter((c) => c.branchId === id).length + t.employees.filter((e) => e.branchId === id).length} />
         </Box>
-        <Box icon={<Radio size={18} />} title="Kanallar (Traffic)" subtitle="Nomzodlar qayerdan kelishi">
-          <ListEditor field="channels" placeholder="Yangi kanal nomi..." usedBy={(t, id) => t.candidates.filter((c) => c.channelId === id).length} />
+        <Box icon={<Radio size={18} />} title="Manbalar" subtitle="Nomzodlar qayerdan keladi: Instagram, Telegram...">
+          <ListEditor field="channels" placeholder="Yangi manba nomi..." usedBy={(t, id) => t.candidates.filter((c) => c.channelId === id).length} />
         </Box>
-        <Box icon={<Layers size={18} />} title="Bo'limlar">
-          <ListEditor field="departments" placeholder="Yangi bo'lim nomi..." usedBy={(t, id) => t.employees.filter((e) => e.departmentId === id).length} />
+        <Box icon={<Layers size={18} />} title="Vakansiya bo'limlari" subtitle="Masalan: Marketing — bo'lim, Videograf — vakansiya">
+          <ListEditor field="departments" placeholder="Masalan: Marketing" usedBy={(t, id) => t.employees.filter((e) => e.departmentId === id).length} />
         </Box>
 
         <Box
@@ -203,9 +203,9 @@ export default function TenantSettings() {
           </div>
         </Box>
 
-        <Box icon={<ExternalLink size={18} />} title="Landing Page havolalari" subtitle="Barcha aktiv vakansiyalar sahifasi">
+        <Box icon={<ExternalLink size={18} />} title="Landing page havolasi" subtitle="Kompaniyangiz uchun alohida vakansiyalar sahifasi">
           <div className="space-y-2">
-            {[{ id: '', name: 'Barcha filiallar' }, ...tenant.branches].map((b) => (
+            {(tenant.branches.length > 1 ? [{ id: '', name: 'Barcha filiallar' }, ...tenant.branches] : [{ id: '', name: 'Barcha vakansiyalar' }]).map((b) => (
               <div key={b.id} className="flex items-center gap-2 rounded-xl bg-slate-50 p-2.5">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{b.name}</p>

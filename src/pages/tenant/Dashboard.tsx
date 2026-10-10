@@ -1,10 +1,33 @@
 import { useNavigate } from 'react-router-dom'
-import { Briefcase, Cake, Download, PieChart as PieIcon, Rocket, BarChart3, UserPlus, Users } from 'lucide-react'
+import { Briefcase, Cake, FileSpreadsheet, PieChart as PieIcon, BarChart3, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Avatar, Badge, Button, Card, Empty, PageHeader, StatCard } from '../../components/ui'
+import { Avatar, Badge, Button, Card, Empty, PageHeader } from '../../components/ui'
 import { nameOf, useTenant } from '../../lib/tenant'
-import { displayPhone, downloadCSV, fmtDate } from '../../lib/utils'
+import { cn, displayPhone, downloadCSV, fmtDate } from '../../lib/utils'
 import { daysToBirthday } from './Birthdays'
+
+/** So'nggi 7 kunda qo'shilganlar soni */
+const recent = (dates: string[]) => dates.filter((d) => Date.now() - +new Date(d) < 7 * 86_400_000).length
+
+function Metric({ title, value, trend, icon, color, onClick }: { title: string; value: number; trend: number; icon: React.ReactNode; color: string; onClick?: () => void }) {
+  return (
+    <Card onClick={onClick} className={cn('rounded-3xl p-6', onClick && 'cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md')}>
+      <div className="flex items-start justify-between">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl" style={{ background: color + '14', color }}>
+          {icon}
+        </div>
+        <span
+          title="So'nggi 7 kunda"
+          className={cn('rounded-lg px-2 py-1 text-xs font-bold', trend > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500')}
+        >
+          {trend > 0 ? `+${trend}` : '0'}
+        </span>
+      </div>
+      <p className="mt-6 text-sm font-medium text-slate-500">{title}</p>
+      <p className="mt-1 text-4xl font-extrabold tracking-tight text-slate-900">{value}</p>
+    </Card>
+  )
+}
 
 export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
   const { tenant, inBranch, isAdmin, me } = useTenant()
@@ -24,7 +47,7 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className="space-y-6">
-      {todayBd.length > 0 && (
+      {embedded && todayBd.length > 0 && (
         <div className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-pink-50 px-5 py-4 text-sm text-pink-700">
           <Cake size={20} />
           <span>
@@ -33,16 +56,16 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
         </div>
       )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Aktiv vakansiyalar" value={activeVac.length} icon={<Briefcase size={22} />} tone="orange" onClick={go('/app/vacancies')} />
-        <StatCard title="Xodimlar soni" value={employees.length} icon={<Users size={22} />} tone="blue" onClick={go('/app/employees')} />
-        <StatCard title="Onboardingdagi nomzodlar" value={onboarding.length} icon={<Rocket size={22} />} tone="green" onClick={go('/app/onboarding')} />
-        <StatCard title="Rekruitingdagilar" value={recruiting.length} icon={<UserPlus size={22} />} tone="purple" onClick={go('/app/recruiting')} />
+        <Metric title="Aktiv vakansiyalar" value={activeVac.length} trend={recent(activeVac.map((v) => v.createdAt))} icon={<Briefcase size={22} />} color="#f97316" onClick={go('/app/vacancies')} />
+        <Metric title="Xodimlar soni" value={employees.length} trend={recent(employees.map((e) => e.hiredAt))} icon={<Users size={22} />} color="#3b82f6" onClick={go('/app/employees')} />
+        <Metric title="Onboardingdagi nomzodlar" value={onboarding.length} trend={recent(onboarding.map((c) => c.stageChangedAt))} icon={<UserPlus size={22} />} color="#22c55e" onClick={go('/app/onboarding')} />
+        <Metric title="Rekruitingdagilar" value={recruiting.length} trend={recent(recruiting.map((c) => c.createdAt))} icon={<TrendingUp size={22} />} color="#a855f7" onClick={go('/app/recruiting')} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="p-6">
+        <Card className="rounded-3xl p-6">
           <h3 className="flex items-center gap-2 font-bold text-slate-900">
-            <PieIcon size={18} className="text-brand" /> Statistika taqsimoti
+            <PieIcon size={18} className="text-orange-500" /> Statistika taqsimoti
           </h3>
           {pieData.length ? (
             <div className="mt-2 grid items-center gap-4 sm:grid-cols-2">
@@ -74,9 +97,9 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
             <Empty title="Nomzodlar yo'q" text="Rekruiting bo'limiga nomzod qo'shing yoki vakansiya linkini tarqating" />
           )}
         </Card>
-        <Card className="p-6">
+        <Card className="rounded-3xl p-6">
           <h3 className="flex items-center gap-2 font-bold text-slate-900">
-            <BarChart3 size={18} className="text-brand" /> Solishtirma grafik
+            <BarChart3 size={18} className="text-blue-500" /> Solishtirma grafik
           </h3>
           <div className="mt-4 h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -191,7 +214,7 @@ export default function TenantDashboard() {
         title="Dashboard"
         subtitle="Xush kelibsiz, bugun HR bo'limidagi ahvol:"
         actions={
-          <Button variant="secondary" icon={<Download size={17} />} onClick={exportCSV}>
+          <Button className="!bg-emerald-600 shadow-lg !shadow-emerald-600/25" icon={<FileSpreadsheet size={17} />} onClick={exportCSV}>
             Export Excel
           </Button>
         }

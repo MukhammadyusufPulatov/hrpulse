@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { Client, DB, Session, Subscription, Tariff, Tenant } from './types'
+import type { Client, DB, Session, Stage, Subscription, SystemStage, Tariff, Tenant } from './types'
 import { DAY, addDays, uid } from './utils'
 
 /*
@@ -18,19 +18,20 @@ export function defaultTenant(): Tenant {
     departments: [],
     channels: ['Instagram', 'Telegram', 'OLX', 'HeadHunter', 'Tavsiya'].map((name) => ({ id: uid(), name })),
     stages: [
-      st('Yangi nomzod', '#3b82f6'),
-      st("Telefonni ko'tarmadi", '#94a3b8'),
-      st('Saralandi', '#8b5cf6'),
-      st('Intervyu belgilandi', '#eab308'),
-      st('1-Intervyu', '#f97316'),
+      st('Yangi nomzod', '#f97316', { system: 'new', description: 'Barcha yangi arizalar shu yerga tushadi' }),
+      st("Telefonni ko'tarmadi", '#f59e0b'),
+      st("Filtrdan o'tdi", '#22c55e'),
+      st('Suhbatga keladi', '#3b82f6'),
+      st('1-suhbatga keldi', '#8b5cf6'),
       st('Zaxira', '#64748b'),
-      st("Onboardingga yo'naltirildi", '#10b981', { toOnboarding: true }),
+      st('Onboarding jarayonida', '#10b981', { system: 'onboarding', toOnboarding: true, description: "Nomzod Onboarding bo'limiga o'tkaziladi" }),
     ],
     onboardingSteps: [
-      st("Hujjatlar yig'ish", '#3b82f6'),
-      st('Treningda', '#8b5cf6'),
+      st('Dastlabki etap', '#3b82f6', { system: 'initial', description: 'Rekruitingdan kelgan nomzodlar' }),
+      st("Hujjatlar yig'ish", '#8b5cf6'),
+      st('Treningda', '#f59e0b'),
       st('Sinov muddati', '#f97316'),
-      st('Ishni boshladi', '#10b981'),
+      st('Ishga olindi', '#10b981', { system: 'hired', description: "Xodimlar bo'limiga o'tkaziladi" }),
     ],
     vacancies: [],
     candidates: [],
@@ -40,6 +41,49 @@ export function defaultTenant(): Tenant {
     managers: [],
     notices: [],
   }
+}
+
+/**
+ * Tizim bosqichlarini joyida ushlab turadi:
+ * Rekruiting: "Yangi nomzod" — birinchi, "Onboarding jarayonida" — oxirgi.
+ * Onboarding: "Dastlabki etap" — birinchi, "Ishga olindi" — oxirgi.
+ */
+export function normalizePipelines(t: Tenant) {
+  const def = defaultTenant()
+  const fix = (list: Stage[], first: SystemStage, last: SystemStage, defs: Stage[]) => {
+    let f = list.find((s) => s.system === first)
+    let l = list.find((s) => s.system === last)
+    if (!f) f = { ...defs.find((s) => s.system === first)!, id: uid() }
+    if (!l) l = { ...defs.find((s) => s.system === last)!, id: uid() }
+    const middle = list.filter((s) => s !== f && s !== l && !s.system)
+    return [f, ...middle, l]
+  }
+  t.stages = fix(t.stages, 'new', 'onboarding', def.stages)
+  t.onboardingSteps = fix(t.onboardingSteps, 'initial', 'hired', def.onboardingSteps)
+  // Eski toOnboarding bosqichlaridagi nomzodlar
+  const ids = new Set([...t.stages, ...t.onboardingSteps].map((s) => s.id))
+  t.candidates.forEach((c) => {
+    if (!ids.has(c.stageId)) c.stageId = c.pipeline === 'recruiting' ? t.stages[0].id : t.onboardingSteps[0].id
+  })
+}
+
+/** Eski versiyadagi ma'lumotlarni yangi tuzilmaga o'tkazish */
+function migrate(db: DB): DB {
+  if (db.version < 2) {
+    for (const t of Object.values(db.tenants)) {
+      const first = t.stages[0]
+      if (first && !first.system) Object.assign(first, { system: 'new', name: 'Yangi nomzod', description: 'Barcha yangi arizalar shu yerga tushadi' })
+      const onb = t.stages.find((s) => s.toOnboarding && !s.system)
+      if (onb) Object.assign(onb, { system: 'onboarding', name: 'Onboarding jarayonida' })
+      const o1 = t.onboardingSteps[0]
+      if (o1 && /dastlab/i.test(o1.name)) o1.system = 'initial'
+      const last = t.onboardingSteps.at(-1)
+      if (last && /ishga|boshladi/i.test(last.name)) Object.assign(last, { system: 'hired', name: 'Ishga olindi' })
+      normalizePipelines(t)
+    }
+    db.version = 2
+  }
+  return db
 }
 
 function sub(t: Tariff, start: string): Subscription {
@@ -65,6 +109,7 @@ function seed(): DB {
     password: 'demo123',
     subdomain: 'demo',
     primaryColor: '#f97316',
+    instagram: 'https://instagram.com/',
     createdAt: ago(200),
     subscriptions: [sub(tariffs[1], ago(200)), sub(tariffs[1], ago(110)), sub(tariffs[1], ago(20))],
   }
@@ -142,7 +187,7 @@ function seed(): DB {
   ]
 
   return {
-    version: 1,
+    version: 2,
     superAdmin: { phone: '930871205', password: '1422dev', name: 'Super Admin' },
     tariffs,
     clients: [demo],
@@ -153,7 +198,11 @@ function seed(): DB {
 function load(): DB {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const db = migrate(JSON.parse(raw))
+      localStorage.setItem(KEY, JSON.stringify(db))
+      return db
+    }
   } catch {
     /* buzilgan ma'lumot — qaytadan yaratamiz */
   }

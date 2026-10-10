@@ -14,7 +14,7 @@ export function Button({
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: 'sm' | 'md' | 'lg'; icon?: ReactNode }) {
   const v: Record<BtnVariant, string> = {
-    primary: 'bg-brand text-white hover:bg-brand-dark shadow-sm shadow-brand/30',
+    primary: 'bg-brand text-white hover:opacity-90 shadow-sm shadow-brand/30',
     secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50',
     ghost: 'text-slate-600 hover:bg-slate-100',
     danger: 'bg-red-500 text-white hover:bg-red-600',
@@ -197,11 +197,11 @@ export function PhotoInput({ value, onChange, name = '' }: { value?: string; onC
 }
 
 // ---------------- Display ----------------
-export function Avatar({ name, photo, size = 36, color }: { name: string; photo?: string; size?: number; color?: string }) {
-  if (photo) return <img src={photo} alt={name} className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />
+export function Avatar({ name, photo, size = 36, color, square }: { name: string; photo?: string; size?: number; color?: string; square?: boolean }) {
+  if (photo) return <img src={photo} alt={name} className={cn('shrink-0 object-cover', square ? 'rounded-xl' : 'rounded-full')} style={{ width: size, height: size }} />
   return (
     <div
-      className={cn('flex shrink-0 items-center justify-center rounded-full font-bold', !color && 'bg-brand/10 text-brand')}
+      className={cn('flex shrink-0 items-center justify-center font-bold', square ? 'rounded-xl' : 'rounded-full', !color && 'bg-brand/10 text-brand')}
       style={{ width: size, height: size, fontSize: size * 0.36, ...(color ? { background: color + '1f', color } : {}) }}
     >
       {initials(name) || '?'}
@@ -397,5 +397,32 @@ export function Table({ head, children, className }: { head: ReactNode[]; childr
         <tbody className="divide-y divide-slate-100">{children}</tbody>
       </table>
     </div>
+  )
+}
+
+// ---------------- Drawer (yon oyna) ----------------
+export function Drawer({ open, onClose, title, actions, children }: { open: boolean; onClose: () => void; title: ReactNode; actions?: ReactNode; children: ReactNode }) {
+  useEffect(() => {
+    if (!open) return
+    const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [open, onClose])
+  if (!open) return null
+  return createPortal(
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-slate-900/30 animate-fade" onClick={onClose} />
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col bg-white shadow-2xl animate-slide">
+        <div className="flex items-center gap-2 border-b border-slate-100 px-6 py-4">
+          <h3 className="flex-1 text-lg font-bold text-slate-900">{title}</h3>
+          {actions}
+          <IconButton onClick={onClose} aria-label="Yopish">
+            <X size={18} />
+          </IconButton>
+        </div>
+        <div className="scroll-thin flex-1 overflow-y-auto px-6 py-5">{children}</div>
+      </aside>
+    </div>,
+    document.body,
   )
 }

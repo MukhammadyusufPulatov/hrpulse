@@ -16,14 +16,14 @@ const SUB_RE = /^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$/
 
 export function ClientFormModal({ open, onClose, client }: { open: boolean; onClose: () => void; client?: Client }) {
   const db = useDb()
-  const empty = { companyName: '', contactName: '', phone: '', subdomain: '', primaryColor: '#4f46e5', tariffId: db.tariffs[0]?.id ?? '', password: '' }
+  const empty = { companyName: '', contactName: '', phone: '', subdomain: '', primaryColor: '#f97316', instagram: '', tariffId: db.tariffs[0]?.id ?? '', password: '' }
   const [f, setF] = useState(empty)
   const [err, setErr] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!open) return
     setErr({})
-    setF(client ? { ...empty, ...client, tariffId: '', password: '' } : empty)
+    setF(client ? { ...empty, ...client, instagram: client.instagram ?? '', tariffId: '', password: '' } : empty)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, client])
 
@@ -38,6 +38,7 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
     else if (phoneTaken(f.phone, client?.id)) e.phone = 'Bu raqam allaqachon ishlatilgan'
     if (!SUB_RE.test(sub)) e.subdomain = 'Faqat lotin harflari, raqam va "-" (masalan: registon)'
     else if (db.clients.some((c) => c.subdomain === sub && c.id !== client?.id)) e.subdomain = 'Bu subdomain band'
+    if (f.instagram.trim() && !/^https?:\/\//.test(f.instagram.trim())) e.instagram = 'Link https:// bilan boshlanishi kerak'
     if (!client) {
       if (!f.tariffId) e.tariffId = 'Tarif tanlang (Sozlamalar → Tariflar)'
       if (f.password.length < 4) e.password = 'Kamida 4 ta belgi'
@@ -48,7 +49,7 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
     if (client) {
       updateDb((d) => {
         const c = d.clients.find((x) => x.id === client.id)!
-        Object.assign(c, { companyName: f.companyName.trim(), contactName: f.contactName.trim(), phone: f.phone, subdomain: sub, primaryColor: f.primaryColor })
+        Object.assign(c, { companyName: f.companyName.trim(), contactName: f.contactName.trim(), phone: f.phone, subdomain: sub, primaryColor: f.primaryColor, instagram: f.instagram.trim() || undefined })
       })
       toast("Mijoz ma'lumotlari saqlandi")
     } else {
@@ -64,6 +65,7 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
           password: f.password,
           subdomain: sub,
           primaryColor: f.primaryColor,
+          instagram: f.instagram.trim() || undefined,
           createdAt: now,
           subscriptions: [{ id: uid(), tariffId: t.id, tariffName: t.name, price: t.price, start: now, end: addDays(now, t.durationDays) }],
         })
@@ -106,6 +108,15 @@ export function ClientFormModal({ open, onClose, client }: { open: boolean; onCl
           </div>
           {err.subdomain && <span className="mt-1 block text-xs text-red-500">{err.subdomain}</span>}
         </div>
+        <Input
+          label="Instagram sahifasi linki"
+          value={f.instagram}
+          onChange={(e) => set('instagram')(e.target.value)}
+          error={err.instagram}
+          placeholder="https://instagram.com/kompaniya"
+          hint="Ariza yuborgan nomzodga 'Instagramda kuzatib boring' tugmasi chiqadi"
+          className="sm:col-span-2"
+        />
         <div className="sm:col-span-2">
           <ColorPicker label="Primary rang" value={f.primaryColor} onChange={set('primaryColor')} />
         </div>

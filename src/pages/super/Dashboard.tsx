@@ -3,7 +3,9 @@ import { AlertTriangle, Building2, CheckCircle2, Clock, Wallet } from 'lucide-re
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Avatar, Badge, Button, Card, Empty, PageHeader, StatCard } from '../../components/ui'
 import { EXPIRING_DAYS, currentSub, daysLeft, lifetimeDays, revenue, subEnd, subStatus, useDb } from '../../lib/db'
-import { COLORS, MONTHS, fmtDate, money, shortMoney } from '../../lib/utils'
+import { MONTHS, fmtDate, money, shortMoney } from '../../lib/utils'
+
+const PIE = ['#111111', '#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
 
 export default function SuperDashboard() {
   const db = useDb()
@@ -80,7 +82,7 @@ export default function SuperDashboard() {
                   <PieChart>
                     <Pie data={byTariff} dataKey="value" innerRadius={48} outerRadius={72} paddingAngle={4}>
                       {byTariff.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        <Cell key={i} fill={PIE[i % PIE.length]} />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -91,7 +93,7 @@ export default function SuperDashboard() {
                 {byTariff.map((t, i) => (
                   <div key={t.name} className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-2 text-slate-600">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ background: PIE[i % PIE.length] }} />
                       {t.name}
                     </span>
                     <span className="font-bold">{t.value}</span>

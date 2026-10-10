@@ -103,7 +103,7 @@ export default function Subscriptions() {
                     <p className="text-xs text-slate-400">{displayPhone(c.phone)}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <Link to={`/c/${c.subdomain}`} target="_blank" className="inline-flex items-center gap-1 font-medium text-brand hover:underline">
+                    <Link to={`/c/${c.subdomain}`} target="_blank" title="Mijozning kirish sahifasi" className="inline-flex items-center gap-1 font-medium text-brand hover:underline">
                       {c.subdomain}.hrpulse.uz <ExternalLink size={13} />
                     </Link>
                   </td>

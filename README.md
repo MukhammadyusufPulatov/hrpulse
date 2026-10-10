@@ -25,7 +25,9 @@ Brauzerda: http://localhost:5180
 | Demo mijoz (admin) | 90 123 45 67 | demo123 |
 | Demo HR menejer | 99 111 22 33 | hr123 |
 
-Login sahifasi bitta: tizim telefon raqam bo'yicha rolni o'zi aniqlaydi.
+- Super admin kirish sahifasi: `HR-PULSE.html#/login` (qora uslub)
+- Mijozning kirish sahifasi (subdomain): `demo.hrpulse.uz`, lokal: `HR-PULSE.html#/c/demo` — mijoz rangida, faqat shu kompaniya admini va HR menejerlari kira oladi
+- Kompaniyaning vakansiyalar sahifasi: `#/c/demo/jobs`
 
 ## Bo'limlar
 

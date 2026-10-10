@@ -1,10 +1,11 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { Briefcase, MapPin, ArrowRight } from 'lucide-react'
-import { Badge, Empty } from '../../components/ui'
+import { ArrowLeft, Briefcase, ChevronRight, MapPin } from 'lucide-react'
+import { Empty } from '../../components/ui'
 import { canLogin, useDb } from '../../lib/db'
 import { SUPER_BRAND, useBrand } from '../../lib/theme'
 import { nameOf } from '../../lib/tenant'
 
+/** Kompaniyaning ommaviy vakansiyalar sahifasi: avval bo'limlar, keyin bo'lim ichidagi vakansiyalar */
 export default function Landing() {
   const { sub } = useParams()
   const [params, setParams] = useSearchParams()
@@ -18,77 +19,94 @@ export default function Landing() {
         <Empty title="Sahifa topilmadi" text="Bu manzil bo'yicha faol kompaniya mavjud emas" />
       </div>
     )
+
   const branch = params.get('branch') || ''
-  const deps = [...new Set(t.vacancies.filter((v) => v.active).map((v) => v.departmentId ?? ''))]
-  const dep = params.get('dep') ?? ''
-  const list = t.vacancies.filter((v) => v.active && (!branch || v.branchId === branch) && (!dep || (v.departmentId ?? '') === dep))
+  const dep = params.get('dep')
+  const active = t.vacancies.filter((v) => v.active && (!branch || v.branchId === branch))
+  const groups = [...t.departments.map((d) => ({ id: d.id, name: d.name })), { id: '_', name: 'Boshqa' }]
+    .map((g) => ({ ...g, list: active.filter((v) => (v.departmentId ?? '_') === g.id || (g.id === '_' && v.departmentId && !t.departments.some((d) => d.id === v.departmentId))) }))
+    .filter((g) => g.list.length)
+  const current = groups.find((g) => g.id === dep)
+  const setDep = (id: string | null) =>
+    setParams((p) => {
+      if (id) p.set('dep', id)
+      else p.delete('dep')
+      return p
+    })
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="relative overflow-hidden bg-brand px-6 pb-24 pt-14 text-white">
-        <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-white/10" />
-        <div className="relative mx-auto max-w-4xl">
-          <p className="text-sm font-semibold text-white/70">{client.subdomain}.hrpulse.uz</p>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-5xl">{client.companyName}</h1>
-          <p className="mt-3 max-w-xl text-white/80">{client.companyName} jamoasining bir qismiga aylaning. Siz uchun eng mos yo'nalishni tanlang.</p>
-        </div>
+    <div className="min-h-screen bg-[#f8fafc]">
+      <header className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-extrabold text-white">{client.companyName[0]}</div>
+        <span className="font-extrabold tracking-tight text-slate-900">{client.companyName}</span>
       </header>
-      <main className="relative mx-auto -mt-14 max-w-4xl px-4 pb-16">
-        <div className="mb-4 flex flex-wrap gap-2">
-          {t.branches.length > 1 && (
-            <select
-              value={branch}
-              onChange={(e) => setParams((p) => (e.target.value ? p.set('branch', e.target.value) : p.delete('branch'), p))}
-              className="h-10 cursor-pointer rounded-xl border-0 bg-white px-3 text-sm font-semibold shadow-sm outline-none"
-            >
-              <option value="">Barcha filiallar</option>
-              {t.branches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          )}
-          {deps.length > 1 && (
-            <select
-              value={dep}
-              onChange={(e) => setParams((p) => (e.target.value ? p.set('dep', e.target.value) : p.delete('dep'), p))}
-              className="h-10 cursor-pointer rounded-xl border-0 bg-white px-3 text-sm font-semibold shadow-sm outline-none"
-            >
-              <option value="">Barcha bo'limlar</option>
-              {deps.filter(Boolean).map((d) => (
-                <option key={d} value={d}>
-                  {nameOf(t.departments, d)}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <div className="space-y-3">
-          {list.length === 0 && (
-            <div className="rounded-3xl bg-white shadow-sm">
-              <Empty icon={<Briefcase size={26} />} title="Bo'sh ish o'rinlari topilmadi" text="Tez orada yangi vakansiyalar e'lon qilinadi" />
+
+      <main className="mx-auto max-w-5xl px-6 pb-20">
+        {!current ? (
+          <>
+            <div className="mx-auto max-w-2xl pb-12 pt-8 text-center">
+              <span className="rounded-full border border-brand/20 bg-brand/5 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-brand">Bo'sh ish o'rinlari</span>
+              <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">Siz uchun eng mos sohani tanlang</h1>
+              <p className="mt-4 text-slate-500">
+                {client.companyName} jamoasiga qo'shiling. O'zingiz qiziqqan bo'limni tanlang va mavjud vakansiyalar bilan tanishing.
+              </p>
             </div>
-          )}
-          {list.map((v) => (
-            <Link key={v.id} to={`/apply/${client.subdomain}/${v.id}/direct`} className="group flex items-center gap-4 rounded-3xl bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-                <Briefcase size={22} />
+            {groups.length === 0 ? (
+              <div className="rounded-3xl bg-white shadow-sm">
+                <Empty icon={<Briefcase size={26} />} title="Bo'sh ish o'rinlari topilmadi" text="Tez orada yangi vakansiyalar e'lon qilinadi" />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-lg font-bold text-slate-900">{v.title}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <MapPin size={14} /> {nameOf(t.branches, v.branchId)}
-                  </span>
-                  <Badge tone="brand">{v.type === 'full_time' ? 'Full-time' : 'Part-time'}</Badge>
-                </div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2">
+                {groups.map((g) => (
+                  <button key={g.id} onClick={() => setDep(g.id)} className="group rounded-[2rem] border border-slate-100 bg-white p-7 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg cursor-pointer">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+                      <Briefcase size={22} />
+                    </div>
+                    <p className="mt-5 min-h-[56px] text-xl font-bold text-slate-900">{g.name}</p>
+                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                      <span className="rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">{g.list.length} ta vakansiya</span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400 transition group-hover:bg-brand group-hover:text-white">
+                        <ChevronRight size={18} />
+                      </span>
+                    </div>
+                  </button>
+                ))}
               </div>
-              <ArrowRight className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-brand" />
-            </Link>
-          ))}
-        </div>
-        <p className="mt-10 text-center text-xs text-slate-400">HR PULSE orqali ishlaydi</p>
+            )}
+          </>
+        ) : (
+          <>
+            <button onClick={() => setDep(null)} className="mb-6 mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-900 cursor-pointer">
+              <ArrowLeft size={16} /> Barcha bo'limlar
+            </button>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">{current.name}</h1>
+            <p className="mt-2 text-slate-500">Ushbu bo'limdagi mavjud barcha bo'sh ish o'rinlari</p>
+            <div className="mt-8 space-y-4">
+              {current.list.map((v) => (
+                <Link key={v.id} to={`/apply/${client.subdomain}/${v.id}/${params.get('ch') || 'direct'}`} className="group flex items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+                    <Briefcase size={22} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lg font-bold text-slate-900">{v.title}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                      {t.branches.length > 1 && (
+                        <span className="flex items-center gap-1">
+                          <MapPin size={14} /> {nameOf(t.branches, v.branchId)}
+                        </span>
+                      )}
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-600">Aktiv</span>
+                      <span className="text-xs font-semibold">{v.type === 'full_time' ? 'Full-time' : 'Part-time'}</span>
+                    </div>
+                  </div>
+                  <span className="hidden text-sm font-bold text-brand sm:block">Batafsil ma'lumot</span>
+                  <ChevronRight className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-brand" />
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
+        <p className="mt-16 text-center text-xs text-slate-400">HR PULSE orqali ishlaydi</p>
       </main>
     </div>
   )

@@ -24,6 +24,7 @@ export interface Client {
   password: string
   subdomain: string
   primaryColor: string
+  instagram?: string
   createdAt: string
   blocked?: boolean
   subscriptions: Subscription[]
@@ -41,7 +42,11 @@ export interface Stage {
   description?: string
   /** Shu bosqichga o'tkazilgan nomzod onboardingga yo'naltiriladi */
   toOnboarding?: boolean
+  /** Tizim bosqichi — o'chirib/tahrirlab bo'lmaydi */
+  system?: SystemStage
 }
+
+export type SystemStage = 'new' | 'onboarding' | 'initial' | 'hired'
 
 export interface KeyValue {
   label: string
@@ -100,7 +105,7 @@ export interface Employee {
   extra: KeyValue[]
 }
 
-export type QuestionType = 'text' | 'photo' | 'file' | 'select' | 'multi'
+export type QuestionType = 'text' | 'phone' | 'date' | 'photo' | 'file' | 'select' | 'multi'
 
 export interface Question {
   id: ID
@@ -137,7 +142,7 @@ export interface Task {
 export interface DocItem {
   id: ID
   name: string
-  kind: 'link' | 'file'
+  kind: 'link' | 'file' | 'image'
   url: string
   fileName?: string
   createdAt: string

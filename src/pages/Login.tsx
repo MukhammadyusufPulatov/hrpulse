@@ -1,13 +1,36 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Activity, BarChart3, Eye, EyeOff, ShieldCheck, Users } from 'lucide-react'
 import { Button } from '../components/ui'
 import { formatPhone, normalizePhone } from '../lib/utils'
-import { canLogin, getDb, setSession, useSession } from '../lib/db'
+import { canLogin, getDb, setSession, useDb, useSession } from '../lib/db'
+import type { Client } from '../lib/types'
+import { Empty } from '../components/ui'
 import { SUPER_BRAND, useBrand } from '../lib/theme'
 
 export default function Login() {
-  useBrand(SUPER_BRAND)
+  return <LoginView />
+}
+
+/** Mijozning subdomain orqali kirish sahifasi: demo.hrpulse.uz (lokal: /#/c/demo) */
+export function TenantLogin() {
+  const { sub } = useParams()
+  const db = useDb()
+  const client = db.clients.find((c) => c.subdomain === sub)
+  if (!client)
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <Empty title="Sahifa topilmadi" text="Bu manzil bo'yicha kompaniya mavjud emas" />
+      </div>
+    )
+  return <LoginView client={client} />
+}
+
+function LoginView({ client }: { client?: Client }) {
+  useBrand(client?.primaryColor ?? SUPER_BRAND)
+  // Chap (qora) paneldagi urg'u rangi: super admin — oq, mijoz — o'z rangi
+  const accent = client?.primaryColor ?? '#ffffff'
+  const onAccent = client ? '#ffffff' : '#0b0b0f'
   const session = useSession()
   const nav = useNavigate()
   const [phone, setPhone] = useState('')
@@ -24,20 +47,22 @@ export default function Login() {
     if (!password) return setError('Parolni kiriting')
     const db = getDb()
 
-    if (phone === db.superAdmin.phone && password === db.superAdmin.password) {
+    if (!client && phone === db.superAdmin.phone && password === db.superAdmin.password) {
       setSession({ role: 'super' })
       return nav('/super/dashboard')
     }
 
-    const client = db.clients.find((c) => c.phone === phone && c.password === password)
-    if (client) {
-      const err = canLogin(client)
+    // Subdomain sahifasida faqat shu kompaniya foydalanuvchilari kira oladi
+    const pool = client ? db.clients.filter((c) => c.id === client.id) : db.clients
+    const owner = pool.find((c) => c.phone === phone && c.password === password)
+    if (owner) {
+      const err = canLogin(owner)
       if (err) return setError(err)
-      setSession({ role: 'admin', clientId: client.id })
+      setSession({ role: 'admin', clientId: owner.id })
       return nav('/app/dashboard')
     }
 
-    for (const c of db.clients) {
+    for (const c of pool) {
       const m = db.tenants[c.id]?.managers.find((x) => x.phone === phone && x.password === password)
       if (m) {
         const err = canLogin(c)
@@ -54,14 +79,14 @@ export default function Login() {
       {/* Chap panel — qora, brend */}
       <div className="relative hidden bg-[#0b0b0f] lg:flex lg:flex-col lg:justify-between lg:p-14">
         <div className="flex items-center gap-3 text-white">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white shadow-lg shadow-brand/30">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: accent, color: onAccent }}>
             <Activity size={24} strokeWidth={2.5} />
           </div>
-          <span className="text-xl font-extrabold tracking-tight">HR PULSE</span>
+          <span className="text-xl font-extrabold tracking-tight">{client?.companyName ?? 'HR PULSE'}</span>
         </div>
         <div className="text-white">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-brand/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand ring-1 ring-brand/30">
-            Business CRM
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: accent, borderColor: accent + '55' }}>
+            {client ? 'HR PULSE · Business CRM' : 'Business CRM'}
           </p>
           <h2 className="max-w-lg text-[44px] font-extrabold leading-[1.1] tracking-tight">HR jarayonlaringizni bir joyda nazorat qiling</h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-zinc-400">Rekruiting, onboarding, xodimlar bazasi, vazifalar va hisobotlar — barchasi bitta CRM tizimida.</p>
@@ -72,7 +97,7 @@ export default function Login() {
               [<ShieldCheck key="s" size={20} />, 'Xavfsiz'],
             ].map(([icon, label], i) => (
               <div key={i} className="flex flex-col gap-3 px-5 first:pl-0">
-                <span className="text-brand">{icon}</span>
+                <span style={{ color: accent }}>{icon}</span>
                 <p className="text-sm font-semibold">{label}</p>
               </div>
             ))}
@@ -88,10 +113,10 @@ export default function Login() {
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white">
               <Activity size={24} strokeWidth={2.5} />
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900">HR PULSE</span>
+            <span className="text-xl font-extrabold tracking-tight text-slate-900">{client?.companyName ?? 'HR PULSE'}</span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Tizimga kirish</h1>
-          <p className="mt-2 text-sm text-slate-500">Telefon raqamingiz va parolingizni kiriting</p>
+          <p className="mt-2 text-sm text-slate-500">{client ? `${client.companyName} — admin va HR menejerlar uchun` : 'Telefon raqamingiz va parolingizni kiriting'}</p>
           <div className="mt-9 space-y-5">
             <label className="block">
               <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">Telefon raqam</span>
